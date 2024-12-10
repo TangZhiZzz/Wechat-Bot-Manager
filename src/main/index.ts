@@ -2,8 +2,9 @@ import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
+import { BotManager } from './bot/bot-manager'
 
-function createWindow(): void {
+function createWindow(): BrowserWindow {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
     width: 900,
@@ -13,7 +14,9 @@ function createWindow(): void {
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
-      sandbox: false
+      sandbox: false,
+      nodeIntegration: true,
+      contextIsolation: true
     }
   })
 
@@ -33,12 +36,14 @@ function createWindow(): void {
   } else {
     mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
   }
+
+  return mainWindow
 }
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   // Set app user model id for windows
   electronApp.setAppUserModelId('com.electron')
 
@@ -52,7 +57,50 @@ app.whenReady().then(() => {
   // IPC test
   ipcMain.on('ping', () => console.log('pong'))
 
-  createWindow()
+  const mainWindow = createWindow()
+  const botManager = BotManager.getInstance()
+
+  // 监听 bot 事件并转发到渲染进程
+  botManager.on('scan', (data) => {
+    console.log('Forwarding scan event to renderer:', data)
+    mainWindow.webContents.send('bot:scan', data)
+  })
+
+  botManager.on('login', (data) => {
+    mainWindow.webContents.send('bot:logged-in', data)
+  })
+
+  // 添加 IPC 处理
+  ipcMain.handle('bot:start', async () => {
+    try {
+      await botManager.start()
+      return { success: true }
+    } catch (error) {
+      return { success: false, error: error.message }
+    }
+  })
+
+  ipcMain.handle('bot:stop', async () => {
+    try {
+      await botManager.stop()
+      return { success: true }
+    } catch (error) {
+      return { success: false, error: error.message }
+    }
+  })
+
+  ipcMain.handle('bot:status', () => {
+    try {
+      return { loggedIn: botManager.isLoggedIn() }
+    } catch (error) {
+      console.error('Error getting status:', error)
+      return { loggedIn: false, error: error.message }
+    }
+  })
+
+  ipcMain.handle('bot:qrcode', () => {
+    return { qrcode: botManager.getQrcode() }
+  })
 
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the
