@@ -7,8 +7,10 @@ interface ScanData {
   url: string
 }
 
-interface LoginData {
+interface UserInfo {
   name: string
+  id: string
+  avatar: string
 }
 
 const botAPI = {
@@ -19,8 +21,12 @@ const botAPI = {
   onScan: (callback: (data: ScanData) => void) => {
     ipcRenderer.on('bot:scan', (_event, data: ScanData) => callback(data))
   },
-  onLogin: (callback: (data: LoginData) => void) => {
-    ipcRenderer.on('bot:logged-in', (_event, data: LoginData) => callback(data))
+  onLogin: (callback: (data: UserInfo) => void) => {
+    ipcRenderer.on('bot:logged-in', (_event, data: UserInfo) => callback(data))
+  },
+  getStats: () => ipcRenderer.invoke('bot:getStats'),
+  onStatsUpdate: (callback: (stats: any) => void) => {
+    ipcRenderer.on('bot:stats-updated', (_event, stats) => callback(stats))
   }
 }
 

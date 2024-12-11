@@ -102,6 +102,16 @@ app.whenReady().then(async () => {
     return { qrcode: botManager.getQrcode() }
   })
 
+  // 添加统计相关的 IPC 处理
+  ipcMain.handle('bot:getStats', () => {
+    return botManager.getStats()
+  })
+
+  // 监听统计更新并转发到渲染进程
+  botManager.on('stats', (stats) => {
+    mainWindow.webContents.send('bot:stats-updated', stats)
+  })
+
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the
     // dock icon is clicked and there are no other windows open.

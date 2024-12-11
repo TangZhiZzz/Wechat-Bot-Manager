@@ -1,12 +1,23 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 
+interface UserInfo {
+  name: string
+  id: string
+  avatar: string
+}
+
 const qrcodeUrl = ref('')
 const isLoggedIn = ref(false)
 const userName = ref('')
 const loading = ref(true)
 const error = ref('')
 const scanStatus = ref('')
+
+// 定义 emit
+const emit = defineEmits<{
+  login: [UserInfo]
+}>()
 
 const checkLoginStatus = async () => {
   try {
@@ -62,7 +73,7 @@ const handleScan = (data: { qrcode: string; status: string; url: string }) => {
 }
 
 // 处理登录事件
-const handleLogin = (data: { name: string }) => {
+const handleLogin = (data: UserInfo) => {
   console.log('Received login event:', data)
   isLoggedIn.value = true
   userName.value = data.name
@@ -70,6 +81,8 @@ const handleLogin = (data: { name: string }) => {
   loading.value = false
   error.value = ''
   scanStatus.value = ''
+  // 触发登录事件，传递完整的用户信息
+  emit('login', data)
 }
 
 onMounted(async () => {
