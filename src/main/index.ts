@@ -113,8 +113,8 @@ app.whenReady().then(async () => {
     return botManager.getFriends()
   })
 
-  ipcMain.handle('bot:getGroups', async () => {
-    return botManager.getGroups()
+  ipcMain.handle('bot:getRooms', async () => {
+    return botManager.getRooms()
   })
 
   // 添加消息相关的 IPC 处理

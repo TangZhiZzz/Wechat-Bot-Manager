@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 
 interface UserInfo {
   name: string
@@ -19,37 +19,6 @@ const refreshing = ref(false)
 const emit = defineEmits<{
   login: [UserInfo]
 }>()
-
-const checkLoginStatus = async () => {
-  try {
-    const { loggedIn } = await window.api.bot.getStatus()
-    isLoggedIn.value = loggedIn
-    return loggedIn
-  } catch (err) {
-    console.error('Failed to check login status:', err)
-    error.value = '检查登录状态失败'
-    return false
-  } finally {
-    loading.value = false
-  }
-}
-
-const startBot = async () => {
-  try {
-    loading.value = true
-    error.value = ''
-    const { success, error: startError } = await window.api.bot.start()
-    if (!success && startError) {
-      error.value = `启动失败: ${startError}`
-      console.error('Failed to start bot:', startError)
-    }
-  } catch (err) {
-    console.error('Error starting bot:', err)
-    error.value = '启动失败'
-  } finally {
-    loading.value = false
-  }
-}
 
 // 添加刷新二维码方法
 const refreshQrcode = async () => {
@@ -104,20 +73,39 @@ const handleLogin = (data: UserInfo) => {
   emit('login', data)
 }
 
+// 添加事件清理函数
+const cleanupListeners = () => {
+  window.api.bot.offScan?.(handleScan)
+  window.api.bot.offLogin?.(handleLogin)
+}
+
 onMounted(async () => {
   try {
-    const isLoggedIn = await checkLoginStatus()
-    if (!isLoggedIn) {
-      await startBot()
-    }
-
-    // 注册事件监听
+    // 先清理可能存在的旧监听器
+    cleanupListeners()
+    
+    // 添加新的监听器
     window.api.bot.onScan(handleScan)
     window.api.bot.onLogin(handleLogin)
+
+    // 启动机器人
+    loading.value = true
+    error.value = ''
+    const { success, error: startError } = await window.api.bot.start()
+    if (!success && startError) {
+      error.value = `启动失败: ${startError}`
+      console.error('Failed to start bot:', startError)
+    }
   } catch (err) {
-    console.error('Error in component mount:', err)
-    error.value = '初始化失败'
+    console.error('Error starting bot:', err)
+    error.value = '启动失败'
+  } finally {
+    loading.value = false
   }
+})
+
+onUnmounted(() => {
+  cleanupListeners()
 })
 </script>
 
@@ -139,8 +127,8 @@ onMounted(async () => {
       <template v-else-if="qrcodeUrl">
         <img :src="qrcodeUrl" alt="Login QR Code" class="qrcode" />
         <p class="scan-status">{{ scanStatus }}</p>
-        <button 
-          v-if="scanStatus.includes('过期')" 
+        <button
+          v-if="scanStatus.includes('过期')"
           class="refresh-btn"
           :disabled="refreshing"
           @click="refreshQrcode"

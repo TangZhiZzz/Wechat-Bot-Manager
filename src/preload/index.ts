@@ -1,31 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
-
-interface ScanData {
-  qrcode: string
-  status: string
-  url: string
-}
-
-interface UserInfo {
-  name: string
-  id: string
-  avatar: string
-}
-
-interface Stats {
-  messageCount: number
-  activeContactsCount: number
-  groupCount: number
-}
-
-interface MessageData {
-  id: string
-  content: string
-  sender: string
-  timestamp: number
-  type: 'text' | 'image' | 'file' | 'other'
-}
+import type { ScanData, UserInfo, Stats, MessageData } from '../types'
 
 const botAPI = {
   start: () => ipcRenderer.invoke('bot:start'),
@@ -52,7 +27,13 @@ const botAPI = {
     )
   },
   getFriends: () => ipcRenderer.invoke('bot:getFriends'),
-  getGroups: () => ipcRenderer.invoke('bot:getGroups')
+  getRooms: () => ipcRenderer.invoke('bot:getRooms'),
+  offScan: (callback: (data: ScanData) => void) => {
+    ipcRenderer.removeListener('bot:scan', (_event, data: ScanData) => callback(data))
+  },
+  offLogin: (callback: (data: UserInfo) => void) => {
+    ipcRenderer.removeListener('bot:logged-in', (_event, data: UserInfo) => callback(data))
+  }
 }
 
 // 更新 API 对象

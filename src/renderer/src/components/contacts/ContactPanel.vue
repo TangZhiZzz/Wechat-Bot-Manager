@@ -1,62 +1,73 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import defaultAvatar from '@renderer/assets/avatar.png'
-
-interface Contact {
-  id: string
-  name: string
-  avatar: string
-  type: 'friend' | 'group'
-  lastMessage?: string
-}
+import type { ContactInfo, RoomInfo } from '../../../../types'
 
 const searchQuery = ref('')
-const contacts = ref<Contact[]>([])
+const friends = ref<ContactInfo[]>([])
+const rooms = ref<RoomInfo[]>([])
 const activeTab = ref<'friend' | 'group'>('friend')
+const loading = ref(false)
+const loadedTypes = ref(new Set<'friend' | 'group'>())
 
 const filteredContacts = computed(() => {
-  return contacts.value.filter(
+  const list = activeTab.value === 'friend' ? friends.value : rooms.value
+  console.log(list, 'list')
+  return list.filter(
     (contact) =>
-      contact.type === activeTab.value &&
-      (searchQuery.value === '' ||
-        contact.name.toLowerCase().includes(searchQuery.value.toLowerCase()))
+      searchQuery.value === '' ||
+      contact.name.toLowerCase().includes(searchQuery.value.toLowerCase())
   )
 })
 
-const fetchContacts = async () => {
-  try {
-    const friendList = await window.api.bot.getFriends()
-    const groupList = await window.api.bot.getGroups()
-
-    contacts.value = [
-      ...friendList.map((friend) => ({
-        id: friend.id,
-        name: friend.name,
-        // avatar: friend.avatar,
-        avatar: '',
-        type: 'friend' as const,
-        lastMessage: friend.lastMessage
-      })),
-      ...groupList.map((group) => ({
-        id: group.id,
-        name: group.name,
-        // avatar: group.avatar,
-        avatar: '',
-        type: 'group' as const,
-        lastMessage: group.lastMessage
-      }))
-    ]
-  } catch (err) {
-    console.error('Failed to fetch contacts:', err)
+const handleTabChange = async (type: 'friend' | 'group') => {
+  activeTab.value = type
+  // 如果没有加载过该类型的数据，则加载
+  if (!loadedTypes.value.has(type)) {
+    try {
+      loading.value = true
+      if (type === 'friend') {
+        const list = await window.api.bot.getFriends()
+        console.log(list, 'friend')
+        friends.value = list
+      } else {
+        const list = await window.api.bot.getRooms()
+        console.log(list, 'rooms')
+        rooms.value = list
+      }
+      loadedTypes.value.add(type)
+    } catch (err) {
+      console.error(`Failed to fetch ${type}s:`, err)
+    } finally {
+      loading.value = false
+    }
   }
 }
 
-const handleAvatarError = (e: Event) => {
-  const img = e.target as HTMLImageElement
-  img.src = defaultAvatar
+const loadRoom = async () => {
+  const list = await window.api.bot.getRooms()
+  rooms.value = list
+}
+const loadFriend = async () => {
+  const list = await window.api.bot.getFriends()
+  friends.value = list
 }
 
-onMounted(fetchContacts)
+const getRoomName = (id: string) => {
+  const room = rooms.value.find((room) => room.id === id)
+  const newName = room?.members.map((member) => {
+    const contact = friends.value.find((contact) => contact.id === member)
+    return contact?.name
+  })
+  return newName?.join('，')
+}
+
+// 初始加载好友列表
+onMounted(() => {
+  loadRoom()
+  loadFriend()
+  handleTabChange('friend')
+})
 </script>
 
 <template>
@@ -66,46 +77,59 @@ onMounted(fetchContacts)
         <div class="tabs">
           <button
             :class="['tab-btn', { active: activeTab === 'friend' }]"
-            @click="activeTab = 'friend'"
+            @click="handleTabChange('friend')"
           >
-            好友
+            好友 ({{ friends.length }})
           </button>
           <button
             :class="['tab-btn', { active: activeTab === 'group' }]"
-            @click="activeTab = 'group'"
+            @click="handleTabChange('group')"
           >
-            群聊
+            群聊 ({{ rooms.length }})
           </button>
-        </div>
-        <div class="search-box">
-          <input
-            v-model="searchQuery"
-            type="text"
-            placeholder="搜索联系人..."
-            class="search-input"
-          />
         </div>
       </div>
 
       <div class="contact-list">
-        <template v-if="filteredContacts.length > 0">
-          <div v-for="contact in filteredContacts" :key="contact.id" class="contact-item">
-            <img
-              :src="contact.avatar || defaultAvatar"
-              alt="Avatar"
-              class="contact-avatar"
-              @error="handleAvatarError"
+        <div class="search-box">
+          <div class="search-input-wrapper">
+            <i class="search-icon">🔍</i>
+            <input
+              v-model="searchQuery"
+              type="text"
+              :placeholder="activeTab === 'friend' ? '搜索好友...' : '搜索群聊...'"
+              class="search-input"
             />
-            <div class="contact-info">
-              <div class="contact-name">{{ contact.name }}</div>
-              <div v-if="contact.lastMessage" class="contact-last-message">
-                {{ contact.lastMessage }}
+            <button v-if="searchQuery" class="clear-btn" @click="searchQuery = ''">✕</button>
+          </div>
+        </div>
+
+        <div v-if="loading" class="loading-state">加载中...</div>
+
+        <div v-else-if="activeTab === 'friend'" class="contact-section">
+          <template v-if="filteredContacts.length > 0">
+            <div v-for="contact in filteredContacts" :key="contact.id" class="contact-item">
+              <img :src="defaultAvatar" alt="Avatar" class="contact-avatar" />
+              <div class="contact-info">
+                <div class="contact-name">{{ contact.name }}</div>
               </div>
             </div>
-          </div>
-        </template>
-        <div v-else class="empty-state">
-          {{ activeTab === 'friend' ? '暂无好友' : '暂无群聊' }}
+          </template>
+          <div v-else class="empty-state">暂无好友</div>
+        </div>
+
+        <div v-else class="contact-section">
+          <template v-if="filteredContacts.length > 0">
+            <div v-for="contact in filteredContacts" :key="contact.id" class="contact-item">
+              <img :src="defaultAvatar" alt="Avatar" class="contact-avatar" />
+              <div class="contact-info">
+                <div class="contact-name">
+                  {{ contact.name === '' ? getRoomName(contact.id) : contact.name }}
+                </div>
+              </div>
+            </div>
+          </template>
+          <div v-else class="empty-state">暂无群聊</div>
         </div>
       </div>
     </div>
@@ -130,47 +154,96 @@ onMounted(fetchContacts)
 .tabs {
   display: flex;
   gap: 8px;
-  margin-bottom: 16px;
 }
 
 .tab-btn {
-  padding: 8px 16px;
+  flex: 1;
+  padding: 12px;
   border: none;
   background: #f5f5f5;
   border-radius: 4px;
   cursor: pointer;
   color: #666;
+  font-weight: 500;
+  transition: all 0.2s;
 }
 
 .tab-btn.active {
   background: #2c3e50;
   color: white;
+  transform: translateY(1px);
+}
+
+.search-box {
+  padding: 16px;
+  border-bottom: 1px solid #eee;
+}
+
+.search-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: #f5f5f5;
+  border-radius: 8px;
+  padding: 0 12px;
+  transition: all 0.2s;
+}
+
+.search-input-wrapper:focus-within {
+  background: white;
+  box-shadow: 0 0 0 2px #2c3e50;
+}
+
+.search-icon {
+  font-size: 14px;
+  color: #666;
+  margin-right: 8px;
 }
 
 .search-input {
-  width: 100%;
-  padding: 8px 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 12px 0;
   font-size: 14px;
+  color: #2c3e50;
+  outline: none;
 }
 
-.contact-list {
-  flex: 1;
-  overflow-y: auto;
-  padding: 16px;
+.search-input::placeholder {
+  color: #999;
+}
+
+.clear-btn {
+  background: none;
+  border: none;
+  padding: 4px;
+  color: #999;
+  cursor: pointer;
+  font-size: 12px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.clear-btn:hover {
+  background: #e0e0e0;
+  color: #666;
 }
 
 .contact-item {
   display: flex;
   align-items: center;
   padding: 12px;
-  border-bottom: 1px solid #eee;
-  cursor: pointer;
+  border-radius: 8px;
+  transition: all 0.2s;
 }
 
 .contact-item:hover {
   background: #f8f9fa;
+  transform: translateX(4px);
 }
 
 .contact-avatar {
@@ -202,5 +275,18 @@ onMounted(fetchContacts)
   height: 200px;
   color: #a4b0be;
   font-size: 14px;
+}
+
+.loading-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100px;
+  color: #a4b0be;
+  font-size: 14px;
+}
+
+.contact-section {
+  margin-top: 16px;
 }
 </style>

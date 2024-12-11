@@ -1,13 +1,37 @@
 <script setup lang="ts">
-interface Props {
-  stats: {
-    messageCount: number
-    activeContactsCount: number
-    groupCount: number
-  }
+import { ref, onMounted } from 'vue'
+
+interface Stats {
+  messageCount: number
+  activeContactsCount: number
+  groupCount: number
+  friendCount: number
 }
 
-defineProps<Props>()
+const stats = ref<Stats>({
+  messageCount: 0,
+  activeContactsCount: 0,
+  groupCount: 0,
+  friendCount: 0
+})
+
+// 更新统计信息
+const updateStats = (newStats: Stats) => {
+  stats.value = newStats
+}
+
+onMounted(async () => {
+  try {
+    // 获取初始统计数据
+    const initialStats = await window.api.bot.getStats()
+    stats.value = initialStats
+
+    // 监听统计更新
+    window.api.bot.onStatsUpdate(updateStats)
+  } catch (err) {
+    console.error('Failed to fetch stats:', err)
+  }
+})
 </script>
 
 <template>
@@ -27,6 +51,11 @@ defineProps<Props>()
         <div class="stat-icon">👥</div>
         <h3>群聊数量</h3>
         <div class="stat-value">{{ stats.groupCount }}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">👥</div>
+        <h3>好友数量</h3>
+        <div class="stat-value">{{ stats.friendCount }}</div>
       </div>
     </div>
 
@@ -54,7 +83,9 @@ defineProps<Props>()
   text-align: center;
   transition: transform 0.2s;
 }
-
+.stat-card h3 {
+  color: #2c3e50;
+}
 .stat-card:hover {
   transform: translateY(-2px);
 }

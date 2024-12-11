@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref } from 'vue'
 import DashboardPanel from './dashboard/DashboardPanel.vue'
 import MessagePanel from './messages/MessagePanel.vue'
 import ContactPanel from './contacts/ContactPanel.vue'
@@ -19,32 +19,6 @@ const emit = defineEmits<{
   logout: []
 }>()
 const currentTab = ref('dashboard')
-
-interface Stats {
-  messageCount: number
-  activeContactsCount: number
-  groupCount: number
-}
-
-const stats = ref({
-  messageCount: 0,
-  activeContactsCount: 0,
-  groupCount: 0
-})
-
-// 更新统计信息
-const updateStats = (newStats: Stats) => {
-  stats.value = newStats
-}
-
-onMounted(async () => {
-  // 获取初始统计数据
-  const initialStats = await window.api.bot.getStats()
-  stats.value = initialStats
-
-  // 监听统计更新
-  window.api.bot.onStatsUpdate(updateStats)
-})
 
 const handleLogout = async () => {
   try {
@@ -142,7 +116,7 @@ const handleAvatarError = (e: Event) => {
       </div>
 
       <div class="content-body">
-        <DashboardPanel v-if="currentTab === 'dashboard'" :stats="stats" />
+        <DashboardPanel v-if="currentTab === 'dashboard'" />
         <MessagePanel v-else-if="currentTab === 'messages'" />
         <ContactPanel v-else-if="currentTab === 'contacts'" />
         <SettingPanel v-else-if="currentTab === 'settings'" />

@@ -1,31 +1,5 @@
 import { ElectronAPI } from '@electron-toolkit/preload'
-
-interface UserInfo {
-  name: string
-  id: string
-  avatar: string
-}
-
-interface Stats {
-  messageCount: number
-  activeContactsCount: number
-  groupCount: number
-}
-
-interface ContactInfo {
-  id: string
-  name: string
-  avatar: string
-  lastMessage?: string
-}
-
-interface Message {
-  id: string
-  content: string
-  sender: string
-  timestamp: number
-  type: 'text' | 'image' | 'file' | 'other'
-}
+import type { UserInfo, Stats, ContactInfo, RoomInfo, Message } from '../types'
 
 declare global {
   interface Window {
@@ -46,11 +20,13 @@ declare global {
         getStats: () => Promise<Stats>
         onStatsUpdate: (callback: (stats: Stats) => void) => void
         getFriends: () => Promise<ContactInfo[]>
-        getGroups: () => Promise<ContactInfo[]>
+        getRooms: () => Promise<RoomInfo[]>
         getMessages: () => Promise<Message[]>
         onMessage: (callback: (message: Message) => void) => void
         offMessage: (callback: (message: Message) => void) => void
         refreshQrcode: () => Promise<{ success: boolean; error?: string }>
+        offScan: (callback: (data: { qrcode: string; status: string; url: string }) => void) => void
+        offLogin: (callback: (data: UserInfo) => void) => void
       }
     }
   }

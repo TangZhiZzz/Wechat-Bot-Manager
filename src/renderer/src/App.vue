@@ -46,7 +46,6 @@ onMounted(async () => {
   if (isLoggedIn.value) {
     try {
       const { loggedIn } = await window.api.bot.getStatus()
-      console.log('loggedIn', loggedIn)
       if (!loggedIn) {
         // 如果实际未登录，清除存储的状态
         handleLoginStatusChange(false)

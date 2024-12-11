@@ -1,17 +1,9 @@
-import { Wechaty, WechatyBuilder, Contact, Message } from 'wechaty'
+import { Wechaty, WechatyBuilder, Contact, Message as WechatyMessage } from 'wechaty'
 import { EventEmitter } from 'events'
-import { BOT_CONFIG } from './config'
 import * as QRCode from 'qrcode'
 import { join } from 'path'
 import { app } from 'electron'
-
-interface MessageData {
-  id: string
-  content: string
-  sender: string
-  timestamp: number
-  type: 'text' | 'image' | 'file' | 'other'
-}
+import type { MessageData, ContactInfo, RoomInfo } from '../../types'
 
 export class BotManager extends EventEmitter {
   private bot: Wechaty
@@ -22,6 +14,8 @@ export class BotManager extends EventEmitter {
   private activeContacts: Set<string> = new Set()
   private groupCount: number = 0
   private messages: MessageData[] = []
+  private friends: ContactInfo[] = []
+  private rooms: RoomInfo[] = []
 
   private constructor() {
     super()
@@ -29,7 +23,7 @@ export class BotManager extends EventEmitter {
     const memoryCardPath = join(userDataPath, 'memory-card.json')
 
     this.bot = WechatyBuilder.build({
-      name: BOT_CONFIG.name,
+      name: 'wechaty-bot',
       puppet: 'wechaty-puppet-wechat4u',
       puppetOptions: {
         memory: {
@@ -54,7 +48,6 @@ export class BotManager extends EventEmitter {
         this.qrcode = qrcode
         try {
           const qrcodeImageUrl = await QRCode.toDataURL(qrcode)
-          console.log('New QR Code:', { status })
           this.emit('scan', {
             qrcode,
             status,
@@ -66,7 +59,6 @@ export class BotManager extends EventEmitter {
       })
       .on('login', async (user: Contact) => {
         try {
-          console.log('user', user)
           const avatarFilebox = await user.avatar()
           const avatarDataUrl = await avatarFilebox.toDataURL()
 
@@ -76,7 +68,7 @@ export class BotManager extends EventEmitter {
             avatar: avatarDataUrl
           }
           this.emit('login', userInfo)
-          console.log(`User ${user.name()} logged in`)
+          this.loadFriendsAndRooms()
         } catch (error) {
           console.error('Error processing avatar:', error)
           // 如果处理头像失败，发送没有头像的用户信息
@@ -89,14 +81,14 @@ export class BotManager extends EventEmitter {
       })
       .on('ready', async () => {
         this.initialized = true
-        // 获取群聊数量
-        const rooms = await this.bot.Room.findAll()
-        this.groupCount = rooms.length
         this.emitStats()
         this.emit('ready')
       })
-      .on('message', async (message: Message) => {
+      .on('message', async (message: WechatyMessage) => {
         console.log(`Message: ${message}`)
+        // 过滤空消息
+        if (message.text() === '') return
+        // 过滤未知消息
         if (message.type() === this.bot.Message.Type.Unknown) {
           return
         }
@@ -131,6 +123,28 @@ export class BotManager extends EventEmitter {
       })
   }
 
+  private async loadFriendsAndRooms(): Promise<void> {
+    // 获取群聊数量
+    const thisRooms = await this.bot.Room.findAll()
+    const thisFriends = await this.bot.Contact.findAll()
+    console.log(thisFriends, 'thisFriends')
+    this.friends = await Promise.all(
+      thisFriends.map(async (friend) => ({
+        id: friend.id,
+        name: friend.name(),
+        friend: friend.friend() ?? false,
+        alias: (await friend.alias()) ?? '',
+        signature: friend.payload?.signature ?? '',
+        gender: friend.gender() === 1 ? 'male' : 'female'
+      }))
+    )
+    this.rooms = thisRooms.map((room) => ({
+      id: room.id,
+      name: room.payload?.topic ?? '',
+      members: room.payload?.memberIdList ?? []
+    }))
+  }
+
   // 发送统计信息
   private emitStats() {
     this.emit('stats', {
@@ -152,7 +166,8 @@ export class BotManager extends EventEmitter {
     return {
       messageCount: this.messageCount,
       activeContactsCount: this.activeContacts.size,
-      groupCount: this.groupCount
+      groupCount: this.rooms.length,
+      friendCount: this.friends.length
     }
   }
 
@@ -206,54 +221,6 @@ export class BotManager extends EventEmitter {
     return this.qrcode
   }
 
-  public async getFriends() {
-    if (!this.isLoggedIn()) {
-      return []
-    }
-    try {
-      const friends = await this.bot.Contact.findAll()
-      console.log('friends', friends)
-      return Promise.all(
-        friends
-          .filter((friend) => friend.type() === this.bot.Contact.Type.Individual)
-          .map(async (friend) => ({
-            id: friend.id,
-            name: friend.name(),
-            // avatar: await friend
-            //   .avatar()
-            //   .then((box) => box.toDataURL())
-            //   .catch(() => ''),
-            avatar: '',
-            lastMessage: '' // TODO: 获取最后一条消息
-          }))
-      )
-    } catch (error) {
-      console.error('Failed to get friends:', error)
-      return []
-    }
-  }
-
-  public async getGroups() {
-    if (!this.isLoggedIn()) {
-      return []
-    }
-    try {
-      const rooms = await this.bot.Room.findAll()
-      return Promise.all(
-        rooms.map(async (room) => ({
-          id: room.id,
-          name: await room.topic(),
-          // avatar: await room.avatar().then((box) => box.toDataURL()),
-          avatar: '',
-          lastMessage: '' // TODO: 获取最后一条消息
-        }))
-      )
-    } catch (error) {
-      console.error('Failed to get groups:', error)
-      return []
-    }
-  }
-
   public getMessages(): MessageData[] {
     return this.messages
   }
@@ -266,6 +233,24 @@ export class BotManager extends EventEmitter {
     } catch (error) {
       console.error('Failed to refresh qrcode:', error)
       throw error
+    }
+  }
+
+  public async getFriends(): Promise<ContactInfo[]> {
+    try {
+      return this.friends
+    } catch (error) {
+      console.error('Error getting friends:', error)
+      return []
+    }
+  }
+
+  public async getRooms(): Promise<RoomInfo[]> {
+    try {
+      return this.rooms
+    } catch (error) {
+      console.error('Error getting rooms:', error)
+      return []
     }
   }
 }
