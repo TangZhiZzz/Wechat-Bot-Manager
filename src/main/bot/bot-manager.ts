@@ -5,6 +5,14 @@ import * as QRCode from 'qrcode'
 import { join } from 'path'
 import { app } from 'electron'
 
+interface MessageData {
+  id: string
+  content: string
+  sender: string
+  timestamp: number
+  type: 'text' | 'image' | 'file' | 'other'
+}
+
 export class BotManager extends EventEmitter {
   private bot: Wechaty
   private static instance: BotManager
@@ -13,6 +21,7 @@ export class BotManager extends EventEmitter {
   private messageCount: number = 0
   private activeContacts: Set<string> = new Set()
   private groupCount: number = 0
+  private messages: MessageData[] = []
 
   private constructor() {
     super()
@@ -88,11 +97,31 @@ export class BotManager extends EventEmitter {
       })
       .on('message', async (message: Message) => {
         console.log(`Message: ${message}`)
+        if (message.type() === this.bot.Message.Type.Unknown) {
+          return
+        }
         // 更新消息统计
         this.messageCount++
         // 记录活跃联系人
         const sender = message.talker()
         this.activeContacts.add(sender.id)
+
+        // 存储消息
+        const messageData = {
+          id: message.id,
+          content: message.text(),
+          sender: sender.name(),
+          timestamp: message.date().getTime(),
+          type: message.type() === this.bot.Message.Type.Text ? 'text' : 'other'
+        } as MessageData
+        this.messages.unshift(messageData)
+        // 限制消息数量
+        if (this.messages.length > 100) {
+          this.messages = this.messages.slice(0, 100)
+        }
+
+        // 发送消息事件
+        this.emit('message', messageData)
         // 发送统计更新
         this.emitStats()
       })
@@ -175,5 +204,68 @@ export class BotManager extends EventEmitter {
 
   public getQrcode(): string {
     return this.qrcode
+  }
+
+  public async getFriends() {
+    if (!this.isLoggedIn()) {
+      return []
+    }
+    try {
+      const friends = await this.bot.Contact.findAll()
+      console.log('friends', friends)
+      return Promise.all(
+        friends
+          .filter((friend) => friend.type() === this.bot.Contact.Type.Individual)
+          .map(async (friend) => ({
+            id: friend.id,
+            name: friend.name(),
+            // avatar: await friend
+            //   .avatar()
+            //   .then((box) => box.toDataURL())
+            //   .catch(() => ''),
+            avatar: '',
+            lastMessage: '' // TODO: 获取最后一条消息
+          }))
+      )
+    } catch (error) {
+      console.error('Failed to get friends:', error)
+      return []
+    }
+  }
+
+  public async getGroups() {
+    if (!this.isLoggedIn()) {
+      return []
+    }
+    try {
+      const rooms = await this.bot.Room.findAll()
+      return Promise.all(
+        rooms.map(async (room) => ({
+          id: room.id,
+          name: await room.topic(),
+          // avatar: await room.avatar().then((box) => box.toDataURL()),
+          avatar: '',
+          lastMessage: '' // TODO: 获取最后一条消息
+        }))
+      )
+    } catch (error) {
+      console.error('Failed to get groups:', error)
+      return []
+    }
+  }
+
+  public getMessages(): MessageData[] {
+    return this.messages
+  }
+
+  public async refreshQrcode(): Promise<void> {
+    try {
+      // 重新调用登录流程
+      await this.bot.logout()
+      await this.bot.start()
+    } catch (error) {
+      console.error('Failed to refresh qrcode:', error)
+      throw error
+    }
   }
 }

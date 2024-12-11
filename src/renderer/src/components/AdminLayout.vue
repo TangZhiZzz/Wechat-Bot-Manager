@@ -1,5 +1,9 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted } from 'vue'
+import DashboardPanel from './dashboard/DashboardPanel.vue'
+import MessagePanel from './messages/MessagePanel.vue'
+import ContactPanel from './contacts/ContactPanel.vue'
+import SettingPanel from './settings/SettingPanel.vue'
 
 interface Props {
   userInfo: {
@@ -16,6 +20,12 @@ const emit = defineEmits<{
 }>()
 const currentTab = ref('dashboard')
 
+interface Stats {
+  messageCount: number
+  activeContactsCount: number
+  groupCount: number
+}
+
 const stats = ref({
   messageCount: 0,
   activeContactsCount: 0,
@@ -23,7 +33,7 @@ const stats = ref({
 })
 
 // 更新统计信息
-const updateStats = (newStats: any) => {
+const updateStats = (newStats: Stats) => {
   stats.value = newStats
 }
 
@@ -75,32 +85,32 @@ const handleAvatarError = (e: Event) => {
       <nav class="nav-menu">
         <a
           href="#"
-          @click.prevent="currentTab = 'dashboard'"
           :class="{ active: currentTab === 'dashboard' }"
+          @click.prevent="currentTab = 'dashboard'"
         >
           <i class="icon">📊</i>
           仪表盘
         </a>
         <a
           href="#"
-          @click.prevent="currentTab = 'messages'"
           :class="{ active: currentTab === 'messages' }"
+          @click.prevent="currentTab = 'messages'"
         >
           <i class="icon">💬</i>
           消息记录
         </a>
         <a
           href="#"
-          @click.prevent="currentTab = 'contacts'"
           :class="{ active: currentTab === 'contacts' }"
+          @click.prevent="currentTab = 'contacts'"
         >
           <i class="icon">👥</i>
           联系人
         </a>
         <a
           href="#"
-          @click.prevent="currentTab = 'settings'"
           :class="{ active: currentTab === 'settings' }"
+          @click.prevent="currentTab = 'settings'"
         >
           <i class="icon">⚙️</i>
           设置
@@ -132,64 +142,10 @@ const handleAvatarError = (e: Event) => {
       </div>
 
       <div class="content-body">
-        <!-- 仪表盘 -->
-        <div v-if="currentTab === 'dashboard'" class="dashboard">
-          <div class="stats-grid">
-            <div class="stat-card">
-              <div class="stat-icon">💬</div>
-              <h3>今日消息</h3>
-              <div class="stat-value">{{ stats.messageCount }}</div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-icon">👥</div>
-              <h3>活跃联系人</h3>
-              <div class="stat-value">{{ stats.activeContactsCount }}</div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-icon">👥</div>
-              <h3>群聊数量</h3>
-              <div class="stat-value">{{ stats.groupCount }}</div>
-            </div>
-          </div>
-
-          <div class="chart-container">
-            <div class="chart-card">
-              <h3>消息趋势</h3>
-              <div class="chart-placeholder">图表开发中...</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 消息记录 -->
-        <div v-else-if="currentTab === 'messages'" class="messages">
-          <div class="messages-container">
-            <div class="message-list">
-              <div class="empty-state">暂无消息记录</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 联系人列表 -->
-        <div v-else-if="currentTab === 'contacts'" class="contacts">
-          <div class="contacts-container">
-            <div class="contact-list">
-              <div class="empty-state">暂无联系人</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 设置页面 -->
-        <div v-else-if="currentTab === 'settings'" class="settings">
-          <div class="settings-container">
-            <div class="settings-group">
-              <h3>基本设置</h3>
-              <div class="setting-item">
-                <label>自动回复</label>
-                <input type="checkbox" />
-              </div>
-            </div>
-          </div>
-        </div>
+        <DashboardPanel v-if="currentTab === 'dashboard'" :stats="stats" />
+        <MessagePanel v-else-if="currentTab === 'messages'" />
+        <ContactPanel v-else-if="currentTab === 'contacts'" />
+        <SettingPanel v-else-if="currentTab === 'settings'" />
       </div>
     </div>
   </div>

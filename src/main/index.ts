@@ -22,6 +22,7 @@ function createWindow(): BrowserWindow {
 
   mainWindow.on('ready-to-show', () => {
     mainWindow.show()
+    mainWindow.webContents.openDevTools()
   })
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
@@ -75,8 +76,8 @@ app.whenReady().then(async () => {
     try {
       await botManager.start()
       return { success: true }
-    } catch (error) {
-      return { success: false, error: error.message }
+    } catch (error: unknown) {
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
     }
   })
 
@@ -84,17 +85,17 @@ app.whenReady().then(async () => {
     try {
       await botManager.stop()
       return { success: true }
-    } catch (error) {
-      return { success: false, error: error.message }
+    } catch (error: unknown) {
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
     }
   })
 
   ipcMain.handle('bot:status', () => {
     try {
       return { loggedIn: botManager.isLoggedIn() }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error getting status:', error)
-      return { loggedIn: false, error: error.message }
+      return { loggedIn: false, error: error instanceof Error ? error.message : 'Unknown error' }
     }
   })
 
@@ -105,6 +106,35 @@ app.whenReady().then(async () => {
   // 添加统计相关的 IPC 处理
   ipcMain.handle('bot:getStats', () => {
     return botManager.getStats()
+  })
+
+  // 添加获取联系人的 IPC 处理
+  ipcMain.handle('bot:getFriends', async () => {
+    return botManager.getFriends()
+  })
+
+  ipcMain.handle('bot:getGroups', async () => {
+    return botManager.getGroups()
+  })
+
+  // 添加消息相关的 IPC 处理
+  ipcMain.handle('bot:getMessages', () => {
+    return botManager.getMessages()
+  })
+
+  // 添加刷新二维码的 IPC 处理
+  ipcMain.handle('bot:refreshQrcode', async () => {
+    try {
+      await botManager.refreshQrcode()
+      return { success: true }
+    } catch (error: unknown) {
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
+    }
+  })
+
+  // 监听消息事件并转发到渲染进程
+  botManager.on('message', (message) => {
+    mainWindow.webContents.send('bot:new-message', message)
   })
 
   // 监听统计更新并转发到渲染进程

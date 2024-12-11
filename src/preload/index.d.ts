@@ -6,6 +6,27 @@ interface UserInfo {
   avatar: string
 }
 
+interface Stats {
+  messageCount: number
+  activeContactsCount: number
+  groupCount: number
+}
+
+interface ContactInfo {
+  id: string
+  name: string
+  avatar: string
+  lastMessage?: string
+}
+
+interface Message {
+  id: string
+  content: string
+  sender: string
+  timestamp: number
+  type: 'text' | 'image' | 'file' | 'other'
+}
+
 declare global {
   interface Window {
     electron: ElectronAPI
@@ -22,6 +43,14 @@ declare global {
           lastLoginTime?: number
         }>
         currentUser: () => Promise<UserInfo | null>
+        getStats: () => Promise<Stats>
+        onStatsUpdate: (callback: (stats: Stats) => void) => void
+        getFriends: () => Promise<ContactInfo[]>
+        getGroups: () => Promise<ContactInfo[]>
+        getMessages: () => Promise<Message[]>
+        onMessage: (callback: (message: Message) => void) => void
+        offMessage: (callback: (message: Message) => void) => void
+        refreshQrcode: () => Promise<{ success: boolean; error?: string }>
       }
     }
   }

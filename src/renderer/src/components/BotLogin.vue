@@ -13,6 +13,7 @@ const userName = ref('')
 const loading = ref(true)
 const error = ref('')
 const scanStatus = ref('')
+const refreshing = ref(false)
 
 // 定义 emit
 const emit = defineEmits<{
@@ -50,25 +51,43 @@ const startBot = async () => {
   }
 }
 
+// 添加刷新二维码方法
+const refreshQrcode = async () => {
+  try {
+    refreshing.value = true
+    error.value = ''
+    await window.api.bot.refreshQrcode()
+  } catch (err) {
+    console.error('Failed to refresh qrcode:', err)
+    error.value = '刷新二维码失败'
+  } finally {
+    refreshing.value = false
+  }
+}
+
 // 处理扫码事件
 const handleScan = (data: { qrcode: string; status: string; url: string }) => {
   console.log('Received scan event:', data)
   qrcodeUrl.value = data.url
   loading.value = false
+  refreshing.value = false
 
   // 更新扫码状态
   switch (data.status) {
-    case 'SCAN_WAIT':
+    case 'SCAN_STATUS_WAITING':
       scanStatus.value = '等待扫码'
       break
-    case 'SCAN_READ':
+    case 'SCAN_STATUS_SCANNED':
       scanStatus.value = '已扫码，等待确认'
       break
-    case 'SCAN_CONFIRM':
+    case 'SCAN_STATUS_CONFIRMED':
       scanStatus.value = '已确认，正在登录'
       break
+    case 'SCAN_STATUS_TIMEOUT':
+      scanStatus.value = '二维码已过期，请刷新'
+      break
     default:
-      scanStatus.value = data.status
+      scanStatus.value = `扫码状态: ${data.status}`
   }
 }
 
@@ -120,6 +139,14 @@ onMounted(async () => {
       <template v-else-if="qrcodeUrl">
         <img :src="qrcodeUrl" alt="Login QR Code" class="qrcode" />
         <p class="scan-status">{{ scanStatus }}</p>
+        <button 
+          v-if="scanStatus.includes('过期')" 
+          class="refresh-btn"
+          :disabled="refreshing"
+          @click="refreshQrcode"
+        >
+          {{ refreshing ? '刷新中...' : '刷新二维码' }}
+        </button>
       </template>
       <p v-else>正在获取二维码...</p>
     </div>
@@ -193,5 +220,25 @@ onMounted(async () => {
   100% {
     transform: rotate(360deg);
   }
+}
+
+.refresh-btn {
+  margin-top: 10px;
+  padding: 8px 16px;
+  background: #3498db;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.refresh-btn:hover:not(:disabled) {
+  background: #2980b9;
+}
+
+.refresh-btn:disabled {
+  background: #95a5a6;
+  cursor: not-allowed;
 }
 </style>
