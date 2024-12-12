@@ -83,7 +83,7 @@ onMounted(async () => {
   try {
     // 先清理可能存在的旧监听器
     cleanupListeners()
-    
+
     // 添加新的监听器
     window.api.bot.onScan(handleScan)
     window.api.bot.onLogin(handleLogin)

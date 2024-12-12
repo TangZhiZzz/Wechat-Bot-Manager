@@ -3,16 +3,20 @@ import { EventEmitter } from 'events'
 import * as QRCode from 'qrcode'
 import { join } from 'path'
 import { app } from 'electron'
-import type { MessageData, ContactInfo, RoomInfo } from '../../types'
+import type { MessageData, ContactInfo, RoomInfo, Stats } from '../../types'
 
 export class BotManager extends EventEmitter {
   private bot: Wechaty
   private static instance: BotManager
   private qrcode: string = ''
   private initialized: boolean = false
-  private messageCount: number = 0
-  private activeContacts: Set<string> = new Set()
-  private groupCount: number = 0
+  private stats: Stats = {
+    messageCount: 0,
+    activeContacts: new Set(),
+    groupCount: 0,
+    friendCount: 0,
+    contactCount: 0
+  }
   private messages: MessageData[] = []
   private friends: ContactInfo[] = []
   private rooms: RoomInfo[] = []
@@ -93,10 +97,10 @@ export class BotManager extends EventEmitter {
           return
         }
         // 更新消息统计
-        this.messageCount++
+        this.stats.messageCount++
         // 记录活跃联系人
         const sender = message.talker()
-        this.activeContacts.add(sender.id)
+        this.stats.activeContacts.add(sender.id)
 
         // 存储消息
         const messageData = {
@@ -147,28 +151,24 @@ export class BotManager extends EventEmitter {
 
   // 发送统计信息
   private emitStats() {
-    this.emit('stats', {
-      messageCount: this.messageCount,
-      activeContactsCount: this.activeContacts.size,
-      groupCount: this.groupCount
-    })
+    this.emit('stats', this.stats)
   }
 
   // 重置统计数据
   public resetStats() {
-    this.messageCount = 0
-    this.activeContacts.clear()
+    this.stats = {
+      messageCount: 0,
+      activeContacts: new Set(),
+      groupCount: 0,
+      friendCount: 0,
+      contactCount: 0
+    }
     this.emitStats()
   }
 
   // 获取当前统计数据
   public getStats() {
-    return {
-      messageCount: this.messageCount,
-      activeContactsCount: this.activeContacts.size,
-      groupCount: this.rooms.length,
-      friendCount: this.friends.length
-    }
+    return this.stats
   }
 
   public async start(): Promise<void> {

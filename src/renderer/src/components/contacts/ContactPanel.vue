@@ -11,7 +11,8 @@ const loading = ref(false)
 const loadedTypes = ref(new Set<'friend' | 'group'>())
 
 const filteredContacts = computed(() => {
-  const list = activeTab.value === 'friend' ? friends.value : rooms.value
+  const list =
+    activeTab.value === 'friend' ? friends.value.filter((item) => item.friend) : rooms.value
   console.log(list, 'list')
   return list.filter(
     (contact) =>
@@ -79,7 +80,7 @@ onMounted(() => {
             :class="['tab-btn', { active: activeTab === 'friend' }]"
             @click="handleTabChange('friend')"
           >
-            好友 ({{ friends.length }})
+            好友 ({{ friends.filter((item) => item.friend).length }})
           </button>
           <button
             :class="['tab-btn', { active: activeTab === 'group' }]"
@@ -111,7 +112,9 @@ onMounted(() => {
             <div v-for="contact in filteredContacts" :key="contact.id" class="contact-item">
               <img :src="defaultAvatar" alt="Avatar" class="contact-avatar" />
               <div class="contact-info">
-                <div class="contact-name">{{ contact.name }}</div>
+                <div class="contact-name">
+                  {{ contact.name }}
+                </div>
               </div>
             </div>
           </template>

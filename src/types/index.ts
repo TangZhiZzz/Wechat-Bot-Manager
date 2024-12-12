@@ -12,9 +12,10 @@ export interface UserInfo {
 
 export interface Stats {
   messageCount: number
-  activeContactsCount: number
+  activeContacts: Set<string>
   groupCount: number
   friendCount: number
+  contactCount: number
 }
 
 export interface MessageData {

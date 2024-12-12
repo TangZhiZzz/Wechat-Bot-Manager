@@ -3,16 +3,18 @@ import { ref, onMounted } from 'vue'
 
 interface Stats {
   messageCount: number
-  activeContactsCount: number
+  activeContacts: Set<string>
   groupCount: number
   friendCount: number
+  contactCount: number
 }
 
 const stats = ref<Stats>({
   messageCount: 0,
-  activeContactsCount: 0,
+  activeContacts: new Set(),
   groupCount: 0,
-  friendCount: 0
+  friendCount: 0,
+  contactCount: 0
 })
 
 // 更新统计信息
@@ -45,7 +47,7 @@ onMounted(async () => {
       <div class="stat-card">
         <div class="stat-icon">👥</div>
         <h3>活跃联系人</h3>
-        <div class="stat-value">{{ stats.activeContactsCount }}</div>
+        <div class="stat-value">{{ stats.activeContacts.size }}</div>
       </div>
       <div class="stat-card">
         <div class="stat-icon">👥</div>
@@ -56,6 +58,11 @@ onMounted(async () => {
         <div class="stat-icon">👥</div>
         <h3>好友数量</h3>
         <div class="stat-value">{{ stats.friendCount }}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">👥</div>
+        <h3>联系人数量</h3>
+        <div class="stat-value">{{ stats.contactCount }}</div>
       </div>
     </div>
 

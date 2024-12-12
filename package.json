@@ -23,9 +23,10 @@
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.0",
     "@electron-toolkit/utils": "^3.0.0",
+    "electron-store": "^10.0.0",
     "electron-updater": "^6.1.7",
-    "wechaty": "^1.20.2",
-    "qrcode": "^1.5.3"
+    "qrcode": "^1.5.3",
+    "wechaty": "^1.20.2"
   },
   "devDependencies": {
     "@electron-toolkit/eslint-config": "^1.0.2",
