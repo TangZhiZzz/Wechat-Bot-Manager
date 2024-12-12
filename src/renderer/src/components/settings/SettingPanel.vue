@@ -78,7 +78,7 @@ onMounted(async () => {
       <div class="settings-group">
         <div class="group-header">
           <h3>自动回复管理</h3>
-          <button class="add-btn" @click="showAddForm = true" v-if="!showAddForm">添加规则</button>
+          <button v-if="!showAddForm" class="add-btn" @click="showAddForm = true">添加规则</button>
         </div>
 
         <!-- 添加表单 -->
@@ -120,7 +120,7 @@ onMounted(async () => {
         <!-- 规则列表 -->
         <div class="reply-list">
           <div v-if="autoReplies.length === 0" class="empty-state">暂无自动回复规则</div>
-          <div v-else v-for="reply in autoReplies" :key="reply.id" class="reply-item">
+          <div v-for="reply in autoReplies" v-else :key="reply.id" class="reply-item">
             <div class="reply-content">
               <div class="reply-header">
                 <span class="keyword">{{ reply.keyword }}</span>
