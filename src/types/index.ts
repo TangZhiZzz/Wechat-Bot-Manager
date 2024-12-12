@@ -11,17 +11,17 @@ export interface UserInfo {
 }
 
 export interface Stats {
-  messageCount: number
-  activeContacts: Set<string>
   groupCount: number
   friendCount: number
   contactCount: number
+  autoReplyCount: number
 }
 
 export interface MessageData {
   id: string
   content: string
   sender: string
+  room: string | null
   timestamp: number
   type: 'text' | 'image' | 'file' | 'other'
 }
@@ -43,7 +43,7 @@ export interface RoomInfo {
 
 export interface AutoReply {
   id: string
-  keyword: string
+  keywords: string[]
   exactMatch: boolean
   replyType: 'text'
   content: string

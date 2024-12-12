@@ -2,19 +2,17 @@
 import { ref, onMounted } from 'vue'
 
 interface Stats {
-  messageCount: number
-  activeContacts: Set<string>
   groupCount: number
   friendCount: number
   contactCount: number
+  autoReplyCount: number
 }
 
 const stats = ref<Stats>({
-  messageCount: 0,
-  activeContacts: new Set(),
   groupCount: 0,
   friendCount: 0,
-  contactCount: 0
+  contactCount: 0,
+  autoReplyCount: 0
 })
 
 // 更新统计信息
@@ -40,16 +38,6 @@ onMounted(async () => {
   <div class="dashboard">
     <div class="stats-grid">
       <div class="stat-card">
-        <div class="stat-icon">💬</div>
-        <h3>今日消息</h3>
-        <div class="stat-value">{{ stats.messageCount }}</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon">👥</div>
-        <h3>活跃联系人</h3>
-        <div class="stat-value">{{ stats.activeContacts.size }}</div>
-      </div>
-      <div class="stat-card">
         <div class="stat-icon">👥</div>
         <h3>群聊数量</h3>
         <div class="stat-value">{{ stats.groupCount }}</div>
@@ -63,6 +51,11 @@ onMounted(async () => {
         <div class="stat-icon">👥</div>
         <h3>联系人数量</h3>
         <div class="stat-value">{{ stats.contactCount }}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">👥</div>
+        <h3>自动回复数量</h3>
+        <div class="stat-value">{{ stats.autoReplyCount }}</div>
       </div>
     </div>
 

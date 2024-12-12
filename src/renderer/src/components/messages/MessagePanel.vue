@@ -5,6 +5,7 @@ interface MessageData {
   id: string
   content: string
   sender: string
+  room: string | null
   timestamp: number
   type: 'text' | 'image' | 'file' | 'other'
 }
@@ -63,7 +64,9 @@ onUnmounted(() => {
       <div class="message-list">
         <template v-if="filteredMessages.length > 0">
           <div v-for="message in filteredMessages" :key="message.id" class="message-item">
-            <div class="message-sender">{{ message.sender }}</div>
+            <div class="message-sender">
+              {{ message.sender + (message.room ? `----群聊(${message.room})` : '') }}
+            </div>
             <div class="message-content">{{ message.content }}</div>
             <div class="message-time">{{ formatTime(message.timestamp) }}</div>
           </div>

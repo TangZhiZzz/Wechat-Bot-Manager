@@ -6,19 +6,35 @@ const autoReplies = ref<AutoReply[]>([])
 const showAddForm = ref(false)
 const newReply = ref<AutoReply>({
   id: '',
-  keyword: '',
+  keywords: [],
   exactMatch: false,
   replyType: 'text',
   content: '',
   enabled: true
 })
+const newKeyword = ref('')
+
+const addKeyword = () => {
+  if (newKeyword.value && !newReply.value.keywords.includes(newKeyword.value)) {
+    newReply.value.keywords.push(newKeyword.value)
+    newKeyword.value = ''
+  }
+}
+
+const removeKeyword = (keyword: string) => {
+  newReply.value.keywords = newReply.value.keywords.filter((k) => k !== keyword)
+}
 
 const addAutoReply = async () => {
-  if (!newReply.value.keyword || !newReply.value.content) return
+  if (newReply.value.keywords.length === 0 || !newReply.value.content) return
 
   const rule = {
-    ...newReply.value,
-    id: Date.now().toString()
+    id: Date.now().toString(),
+    keywords: [...newReply.value.keywords],
+    exactMatch: newReply.value.exactMatch,
+    replyType: newReply.value.replyType as 'text',
+    content: newReply.value.content,
+    enabled: true
   }
 
   try {
@@ -28,12 +44,13 @@ const addAutoReply = async () => {
     // 重置表单
     newReply.value = {
       id: '',
-      keyword: '',
+      keywords: [],
       exactMatch: false,
       replyType: 'text',
       content: '',
       enabled: true
     }
+    newKeyword.value = ''
     showAddForm.value = false
   } catch (err) {
     console.error('Failed to add auto reply:', err)
@@ -85,7 +102,21 @@ onMounted(async () => {
         <div v-if="showAddForm" class="add-form">
           <div class="form-group">
             <label>关键词</label>
-            <input v-model="newReply.keyword" type="text" placeholder="输入触发关键词" />
+            <div class="keyword-input">
+              <input
+                v-model="newKeyword"
+                type="text"
+                placeholder="输入触发关键词"
+                @keyup.enter="addKeyword"
+              />
+              <button class="add-keyword-btn" @click="addKeyword">添加</button>
+            </div>
+            <div v-if="newReply.keywords.length > 0" class="keywords-list">
+              <span v-for="keyword in newReply.keywords" :key="keyword" class="keyword-tag">
+                {{ keyword }}
+                <button class="remove-keyword" @click="removeKeyword(keyword)">×</button>
+              </span>
+            </div>
           </div>
 
           <div class="form-group">
@@ -123,7 +154,11 @@ onMounted(async () => {
           <div v-for="reply in autoReplies" v-else :key="reply.id" class="reply-item">
             <div class="reply-content">
               <div class="reply-header">
-                <span class="keyword">{{ reply.keyword }}</span>
+                <div class="keywords-container">
+                  <span v-for="keyword in reply.keywords" :key="keyword" class="keyword-tag">
+                    {{ keyword }}
+                  </span>
+                </div>
                 <span class="badge" :class="reply.exactMatch ? 'exact' : 'fuzzy'">
                   {{ reply.exactMatch ? '完全匹配' : '模糊匹配' }}
                 </span>
@@ -373,5 +408,53 @@ input:checked + .slider:before {
   text-align: center;
   padding: 40px;
   color: #95a5a6;
+}
+
+.keyword-input {
+  display: flex;
+  gap: 8px;
+}
+
+.add-keyword-btn {
+  padding: 8px 16px;
+  background: #3498db;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.keywords-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.keyword-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: #e1f0fa;
+  color: #2980b9;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.remove-keyword {
+  background: none;
+  border: none;
+  color: #c0392b;
+  cursor: pointer;
+  padding: 0 4px;
+  font-size: 14px;
+}
+
+.keywords-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-right: 8px;
 }
 </style>

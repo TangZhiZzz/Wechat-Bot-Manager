@@ -12,16 +12,16 @@ export class BotManager extends EventEmitter {
   private qrcode: string = ''
   private initialized: boolean = false
   private stats: Stats = {
-    messageCount: 0,
-    activeContacts: new Set(),
     groupCount: 0,
     friendCount: 0,
-    contactCount: 0
+    contactCount: 0,
+    autoReplyCount: 0
   }
   private messages: MessageData[] = []
   private friends: ContactInfo[] = []
   private rooms: RoomInfo[] = []
   private autoReplies: AutoReply[] = []
+  private userName: string = ''
 
   private constructor() {
     super()
@@ -41,6 +41,11 @@ export class BotManager extends EventEmitter {
     this.friends = store.get('friends', []) as ContactInfo[]
     this.rooms = store.get('rooms', []) as RoomInfo[]
     this.autoReplies = store.get('autoReplies', []) as AutoReply[]
+
+    this.stats.friendCount = this.friends.filter((friend) => friend.friend).length
+    this.stats.contactCount = this.friends.length
+    this.stats.groupCount = this.rooms.length
+    this.stats.autoReplyCount = this.autoReplies.length
 
     this.initEventHandlers()
   }
@@ -77,6 +82,7 @@ export class BotManager extends EventEmitter {
             id: user.id,
             avatar: avatarDataUrl
           }
+          this.userName = user.name()
           this.emit('login', userInfo)
         } catch (error) {
           console.error('Error processing avatar:', error)
@@ -95,47 +101,95 @@ export class BotManager extends EventEmitter {
       })
       .on('message', async (message: WechatyMessage) => {
         console.log(`Message: ${message}`)
+        const content = message.text() // 消息内容
+
         // 过滤空消息
         if (message.text() === '') return
         // 过滤未知消息
         if (message.type() === this.bot.Message.Type.Unknown) return
 
-        // 检查是否需要自动回复
-        const text = message.text()
-        const matchedRule = this.matchAutoReply(text)
-
-        if (matchedRule) {
-          try {
-            if (matchedRule.replyType === 'text') {
-              await message.say(matchedRule.content)
-            }
-          } catch (error) {
-            console.error('Failed to send auto reply:', error)
-          }
-        }
-
-        // 更新消息统计
-        this.stats.messageCount++
         // 记录活跃联系人
         const sender = message.talker()
-        this.stats.activeContacts.add(sender.id)
-
+        const room = message.room() // 是否是群消息
+        const roomName = (await room?.topic()) || null // 群名称
         // 存储消息
-        const messageData = {
+        const messageData: MessageData = {
           id: message.id,
-          content: message.text(),
+          content: content,
           sender: sender.name(),
+          room: roomName,
           timestamp: message.date().getTime(),
           type: message.type() === this.bot.Message.Type.Text ? 'text' : 'other'
-        } as MessageData
+        }
         this.messages.unshift(messageData)
         // 限制消息数量
         if (this.messages.length > 100) {
           this.messages = this.messages.slice(0, 100)
         }
 
+        // 群聊只有被@时才自动回复
+        if (room && content.includes('@' + this.userName)) {
+          const question = (await message.mentionText()) || content.replace(`@${this.userName}`, '') // 去掉艾特的消息主体
+          const matchedRule = this.matchAutoReply(question)
+          if (matchedRule) {
+            try {
+              if (matchedRule.replyType === 'text') {
+                await message.say(matchedRule.content)
+                // 自动回复的消息也要加到messagesData
+                const autoReplyMessageData: MessageData = {
+                  id: Date.now().toString(),
+                  content:
+                    '自动回复: ' +
+                    sender.name() +
+                    ':' +
+                    message.text() +
+                    ' -> ' +
+                    matchedRule.content,
+                  sender: 'auto-reply',
+                  room: roomName,
+                  timestamp: Date.now(),
+                  type: 'text'
+                }
+                this.messages.unshift(autoReplyMessageData)
+                this.emit('message', this.serializeMessage(autoReplyMessageData))
+              }
+            } catch (error) {
+              console.error('Failed to send auto reply:', error)
+            }
+          }
+        } else {
+          const matchedRule = this.matchAutoReply(content)
+
+          if (matchedRule) {
+            try {
+              if (matchedRule.replyType === 'text') {
+                await message.say(matchedRule.content)
+                // 自动回复的消息也要加到messagesData
+                const autoReplyMessageData: MessageData = {
+                  id: Date.now().toString(),
+                  content:
+                    '自动回复: ' +
+                    sender.name() +
+                    ':' +
+                    message.text() +
+                    ' -> ' +
+                    matchedRule.content,
+                  sender: 'auto-reply',
+                  room: roomName,
+                  timestamp: Date.now(),
+                  type: 'text'
+                }
+                this.messages.unshift(autoReplyMessageData)
+                this.emit('message', this.serializeMessage(autoReplyMessageData))
+              }
+            } catch (error) {
+              console.error('Failed to send auto reply:', error)
+            }
+          }
+        }
+
         // 发送消息事件
-        this.emit('message', messageData)
+        this.emit('message', this.serializeMessage(messageData))
         // 发送统计更新
         this.emitStats()
       })
@@ -153,11 +207,10 @@ export class BotManager extends EventEmitter {
   // 重置统计数据
   public resetStats() {
     this.stats = {
-      messageCount: 0,
-      activeContacts: new Set(),
       groupCount: 0,
       friendCount: 0,
-      contactCount: 0
+      contactCount: 0,
+      autoReplyCount: 0
     }
     this.emitStats()
   }
@@ -217,8 +270,20 @@ export class BotManager extends EventEmitter {
     return this.qrcode
   }
 
+  private serializeMessage(message: MessageData): MessageData {
+    return {
+      id: message.id,
+      content: message.content,
+      sender: message.sender,
+      room: message.room,
+      timestamp: message.timestamp,
+      type: message.type
+    }
+  }
+
   public getMessages(): MessageData[] {
-    return this.messages
+    // 返回序列化后的消息
+    return this.messages.map((msg) => this.serializeMessage(msg))
   }
 
   public async refreshQrcode(): Promise<void> {
@@ -295,14 +360,22 @@ export class BotManager extends EventEmitter {
 
   // 添加自动回复规则
   public addAutoReply(rule: AutoReply): void {
-    this.autoReplies.push(rule)
+    const newRule = {
+      ...rule,
+      keywords: [...rule.keywords] // 创建关键词数组的副本
+    }
+    this.autoReplies.push(newRule)
+    this.stats.autoReplyCount = this.autoReplies.length
     this.saveAutoReplies()
+    this.emitStats()
   }
 
   // 删除自动回复规则
   public deleteAutoReply(id: string): void {
     this.autoReplies = this.autoReplies.filter((rule) => rule.id !== id)
+    this.stats.autoReplyCount = this.autoReplies.length
     this.saveAutoReplies()
+    this.emitStats()
   }
 
   // 更新自动回复规则
@@ -311,6 +384,7 @@ export class BotManager extends EventEmitter {
     if (rule) {
       rule.enabled = enabled
       this.saveAutoReplies()
+      this.emitStats()
     }
   }
 
@@ -329,11 +403,13 @@ export class BotManager extends EventEmitter {
     return this.autoReplies.find((rule) => {
       if (!rule.enabled) return false
 
-      if (rule.exactMatch) {
-        return text === rule.keyword
-      } else {
-        return text.includes(rule.keyword)
-      }
+      return rule.keywords.some((keyword) => {
+        if (rule.exactMatch) {
+          return text === keyword
+        } else {
+          return text.includes(keyword)
+        }
+      })
     })
   }
 }

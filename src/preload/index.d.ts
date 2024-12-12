@@ -1,5 +1,5 @@
 import { ElectronAPI } from '@electron-toolkit/preload'
-import type { UserInfo, Stats, ContactInfo, RoomInfo, Message } from '../types'
+import type { UserInfo, Stats, ContactInfo, RoomInfo, Message, AutoReply } from '../types'
 
 declare global {
   interface Window {
