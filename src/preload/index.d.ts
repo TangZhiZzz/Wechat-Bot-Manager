@@ -27,6 +27,8 @@ declare global {
         refreshQrcode: () => Promise<{ success: boolean; error?: string }>
         offScan: (callback: (data: { qrcode: string; status: string; url: string }) => void) => void
         offLogin: (callback: (data: UserInfo) => void) => void
+        refreshFriends: () => Promise<ContactInfo[]>
+        refreshRooms: () => Promise<RoomInfo[]>
       }
     }
   }

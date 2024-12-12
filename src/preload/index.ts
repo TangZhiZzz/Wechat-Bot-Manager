@@ -33,7 +33,9 @@ const botAPI = {
   },
   offLogin: (callback: (data: UserInfo) => void) => {
     ipcRenderer.removeListener('bot:logged-in', (_event, data: UserInfo) => callback(data))
-  }
+  },
+  refreshFriends: () => ipcRenderer.invoke('bot:refreshFriends'),
+  refreshRooms: () => ipcRenderer.invoke('bot:refreshRooms')
 }
 
 // 更新 API 对象

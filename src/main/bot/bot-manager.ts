@@ -131,7 +131,6 @@ export class BotManager extends EventEmitter {
     // 获取群聊数量
     const thisRooms = await this.bot.Room.findAll()
     const thisFriends = await this.bot.Contact.findAll()
-    console.log(thisFriends, 'thisFriends')
     this.friends = await Promise.all(
       thisFriends.map(async (friend) => ({
         id: friend.id,
@@ -188,6 +187,7 @@ export class BotManager extends EventEmitter {
     try {
       await this.bot.stop()
       this.initialized = false
+      // 只需要触发登出事件，不需要清除数据
       if (this.bot.currentUser) {
         this.emit('logout', {
           name: this.bot.currentUser.name(),
@@ -250,6 +250,46 @@ export class BotManager extends EventEmitter {
       return this.rooms
     } catch (error) {
       console.error('Error getting rooms:', error)
+      return []
+    }
+  }
+
+  public async refreshFriends(): Promise<ContactInfo[]> {
+    try {
+      const thisFriends = await this.bot.Contact.findAll()
+      this.friends = await Promise.all(
+        thisFriends.map(async (friend) => ({
+          id: friend.id,
+          name: friend.name(),
+          friend: friend.friend() ?? false,
+          alias: (await friend.alias()) ?? '',
+          signature: friend.payload?.signature ?? '',
+          gender: friend.gender() === 1 ? 'male' : 'female'
+        }))
+      )
+      this.stats.friendCount = this.friends.filter((friend) => friend.friend).length
+      this.stats.contactCount = this.friends.length
+      this.emitStats()
+      return this.friends
+    } catch (error) {
+      console.error('Error refreshing friends:', error)
+      return []
+    }
+  }
+
+  public async refreshRooms(): Promise<RoomInfo[]> {
+    try {
+      const thisRooms = await this.bot.Room.findAll()
+      this.rooms = thisRooms.map((room) => ({
+        id: room.id,
+        name: room.payload?.topic ?? '',
+        members: room.payload?.memberIdList ?? []
+      }))
+      this.stats.groupCount = this.rooms.length
+      this.emitStats()
+      return this.rooms
+    } catch (error) {
+      console.error('Error refreshing rooms:', error)
       return []
     }
   }

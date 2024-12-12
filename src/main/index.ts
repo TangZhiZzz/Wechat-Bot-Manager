@@ -132,6 +132,15 @@ app.whenReady().then(async () => {
     }
   })
 
+  // 添加刷新联系人的 IPC 处理
+  ipcMain.handle('bot:refreshFriends', async () => {
+    return botManager.refreshFriends()
+  })
+
+  ipcMain.handle('bot:refreshRooms', async () => {
+    return botManager.refreshRooms()
+  })
+
   // 监听消息事件并转发到渲染进程
   botManager.on('message', (message) => {
     mainWindow.webContents.send('bot:new-message', message)

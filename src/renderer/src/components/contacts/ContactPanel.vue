@@ -29,11 +29,9 @@ const handleTabChange = async (type: 'friend' | 'group') => {
       loading.value = true
       if (type === 'friend') {
         const list = await window.api.bot.getFriends()
-        console.log(list, 'friend')
         friends.value = list
       } else {
         const list = await window.api.bot.getRooms()
-        console.log(list, 'rooms')
         rooms.value = list
       }
       loadedTypes.value.add(type)
@@ -45,15 +43,6 @@ const handleTabChange = async (type: 'friend' | 'group') => {
   }
 }
 
-const loadRoom = async () => {
-  const list = await window.api.bot.getRooms()
-  rooms.value = list
-}
-const loadFriend = async () => {
-  const list = await window.api.bot.getFriends()
-  friends.value = list
-}
-
 const getRoomName = (id: string) => {
   const room = rooms.value.find((room) => room.id === id)
   const newName = room?.members.map((member) => {
@@ -63,10 +52,25 @@ const getRoomName = (id: string) => {
   return newName?.join('，')
 }
 
+const refreshContacts = async () => {
+  try {
+    loading.value = true
+    if (activeTab.value === 'friend') {
+      const list = await window.api.bot.refreshFriends()
+      friends.value = list
+    } else {
+      const list = await window.api.bot.refreshRooms()
+      rooms.value = list
+    }
+  } catch (err) {
+    console.error(`Failed to refresh ${activeTab.value}s:`, err)
+  } finally {
+    loading.value = false
+  }
+}
+
 // 初始加载好友列表
 onMounted(() => {
-  loadRoom()
-  loadFriend()
   handleTabChange('friend')
 })
 </script>
@@ -89,6 +93,10 @@ onMounted(() => {
             群聊 ({{ rooms.length }})
           </button>
         </div>
+        <button class="refresh-btn" :disabled="loading" @click="refreshContacts">
+          <span v-if="loading">刷新中...</span>
+          <span v-else>刷新列表</span>
+        </button>
       </div>
 
       <div class="contact-list">
@@ -291,5 +299,25 @@ onMounted(() => {
 
 .contact-section {
   margin-top: 16px;
+}
+
+.refresh-btn {
+  padding: 8px 16px;
+  background: #3498db;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-left: auto;
+}
+
+.refresh-btn:hover:not(:disabled) {
+  background: #2980b9;
+}
+
+.refresh-btn:disabled {
+  background: #95a5a6;
+  cursor: not-allowed;
 }
 </style>
