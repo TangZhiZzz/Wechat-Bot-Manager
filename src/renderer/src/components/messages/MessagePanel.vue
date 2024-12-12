@@ -78,6 +78,10 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
+.messages {
+  height: 100%;
+}
+
 .messages-container {
   background: white;
   border-radius: 8px;
@@ -90,6 +94,7 @@ onUnmounted(() => {
 .messages-header {
   padding: 16px;
   border-bottom: 1px solid #eee;
+  flex-shrink: 0;
 }
 
 .search-box {
@@ -108,11 +113,15 @@ onUnmounted(() => {
   flex: 1;
   overflow-y: auto;
   padding: 16px;
+  height: 0;
 }
 
 .message-item {
   padding: 12px;
   border-bottom: 1px solid #eee;
+  background: #f8f9fa;
+  border-radius: 4px;
+  margin-bottom: 8px;
 }
 
 .message-sender {
@@ -124,6 +133,7 @@ onUnmounted(() => {
 .message-content {
   color: #34495e;
   margin-bottom: 4px;
+  word-break: break-all;
 }
 
 .message-time {
@@ -135,7 +145,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 200px;
+  height: 100%;
   color: #a4b0be;
   font-size: 14px;
 }
