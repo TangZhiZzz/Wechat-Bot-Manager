@@ -29,6 +29,13 @@ declare global {
         offLogin: (callback: (data: UserInfo) => void) => void
         refreshFriends: () => Promise<ContactInfo[]>
         refreshRooms: () => Promise<RoomInfo[]>
+        getAutoReplies: () => Promise<AutoReply[]>
+        addAutoReply: (rule: AutoReply) => Promise<{ success: boolean; error?: string }>
+        deleteAutoReply: (id: string) => Promise<{ success: boolean; error?: string }>
+        updateAutoReply: (
+          id: string,
+          enabled: boolean
+        ) => Promise<{ success: boolean; error?: string }>
       }
     }
   }

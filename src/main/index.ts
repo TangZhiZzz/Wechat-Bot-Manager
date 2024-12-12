@@ -3,6 +3,7 @@ import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { BotManager } from './bot/bot-manager'
+import type { AutoReply } from '../types'
 
 function createWindow(): BrowserWindow {
   // Create the browser window.
@@ -140,6 +141,26 @@ app.whenReady().then(async () => {
   ipcMain.handle('bot:refreshRooms', async () => {
     return botManager.refreshRooms()
   })
+
+  // 添加自动回复相关的 IPC 处理
+  ipcMain.handle('bot:getAutoReplies', () => {
+    return botManager.getAutoReplies()
+  })
+
+  ipcMain.handle('bot:addAutoReply', (_event, rule: AutoReply) => {
+    return botManager.addAutoReply(rule)
+  })
+
+  ipcMain.handle('bot:deleteAutoReply', (_event, id: string) => {
+    return botManager.deleteAutoReply(id)
+  })
+
+  ipcMain.handle(
+    'bot:updateAutoReply',
+    (_event, { id, enabled }: { id: string; enabled: boolean }) => {
+      return botManager.updateAutoReply(id, enabled)
+    }
+  )
 
   // 监听消息事件并转发到渲染进程
   botManager.on('message', (message) => {

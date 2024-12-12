@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
-import type { ScanData, UserInfo, Stats, MessageData } from '../types'
+import type { ScanData, UserInfo, Stats, MessageData, AutoReply } from '../types'
 
 const botAPI = {
   start: () => ipcRenderer.invoke('bot:start'),
@@ -35,7 +35,12 @@ const botAPI = {
     ipcRenderer.removeListener('bot:logged-in', (_event, data: UserInfo) => callback(data))
   },
   refreshFriends: () => ipcRenderer.invoke('bot:refreshFriends'),
-  refreshRooms: () => ipcRenderer.invoke('bot:refreshRooms')
+  refreshRooms: () => ipcRenderer.invoke('bot:refreshRooms'),
+  getAutoReplies: () => ipcRenderer.invoke('bot:getAutoReplies'),
+  addAutoReply: (rule: AutoReply) => ipcRenderer.invoke('bot:addAutoReply', rule),
+  deleteAutoReply: (id: string) => ipcRenderer.invoke('bot:deleteAutoReply', id),
+  updateAutoReply: (id: string, enabled: boolean) =>
+    ipcRenderer.invoke('bot:updateAutoReply', { id, enabled })
 }
 
 // 更新 API 对象

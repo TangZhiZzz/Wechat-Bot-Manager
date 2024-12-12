@@ -3,7 +3,7 @@ import { EventEmitter } from 'events'
 import * as QRCode from 'qrcode'
 import { join } from 'path'
 import { app } from 'electron'
-import type { MessageData, ContactInfo, RoomInfo, Stats } from '../../types'
+import type { MessageData, ContactInfo, RoomInfo, Stats, AutoReply } from '../../types'
 
 export class BotManager extends EventEmitter {
   private bot: Wechaty
@@ -20,6 +20,7 @@ export class BotManager extends EventEmitter {
   private messages: MessageData[] = []
   private friends: ContactInfo[] = []
   private rooms: RoomInfo[] = []
+  private autoReplies: AutoReply[] = []
 
   private constructor() {
     super()
@@ -93,9 +94,22 @@ export class BotManager extends EventEmitter {
         // 过滤空消息
         if (message.text() === '') return
         // 过滤未知消息
-        if (message.type() === this.bot.Message.Type.Unknown) {
-          return
+        if (message.type() === this.bot.Message.Type.Unknown) return
+
+        // 检查是否需要自动回复
+        const text = message.text()
+        const matchedRule = this.matchAutoReply(text)
+
+        if (matchedRule) {
+          try {
+            if (matchedRule.replyType === 'text') {
+              await message.say(matchedRule.content)
+            }
+          } catch (error) {
+            console.error('Failed to send auto reply:', error)
+          }
         }
+
         // 更新消息统计
         this.stats.messageCount++
         // 记录活跃联系人
@@ -292,5 +306,41 @@ export class BotManager extends EventEmitter {
       console.error('Error refreshing rooms:', error)
       return []
     }
+  }
+
+  // 添加自动回复规则
+  public addAutoReply(rule: AutoReply): void {
+    this.autoReplies.push(rule)
+  }
+
+  // 删除自动回复规则
+  public deleteAutoReply(id: string): void {
+    this.autoReplies = this.autoReplies.filter((rule) => rule.id !== id)
+  }
+
+  // 更新自动回复规则
+  public updateAutoReply(id: string, enabled: boolean): void {
+    const rule = this.autoReplies.find((r) => r.id === id)
+    if (rule) {
+      rule.enabled = enabled
+    }
+  }
+
+  // 获取所有自动回复规则
+  public getAutoReplies(): AutoReply[] {
+    return this.autoReplies
+  }
+
+  // 检查消息是否匹配规则
+  private matchAutoReply(text: string): AutoReply | undefined {
+    return this.autoReplies.find((rule) => {
+      if (!rule.enabled) return false
+
+      if (rule.exactMatch) {
+        return text === rule.keyword
+      } else {
+        return text.includes(rule.keyword)
+      }
+    })
   }
 }

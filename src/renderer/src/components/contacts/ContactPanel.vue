@@ -13,7 +13,6 @@ const loadedTypes = ref(new Set<'friend' | 'group'>())
 const filteredContacts = computed(() => {
   const list =
     activeTab.value === 'friend' ? friends.value.filter((item) => item.friend) : rooms.value
-  console.log(list, 'list')
   return list.filter(
     (contact) =>
       searchQuery.value === '' ||

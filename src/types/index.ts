@@ -40,3 +40,12 @@ export interface RoomInfo {
   name: string
   members: string[]
 }
+
+export interface AutoReply {
+  id: string
+  keyword: string
+  exactMatch: boolean
+  replyType: 'text'
+  content: string
+  enabled: boolean
+}
