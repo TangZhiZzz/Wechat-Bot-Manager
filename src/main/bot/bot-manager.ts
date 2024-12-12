@@ -4,6 +4,7 @@ import * as QRCode from 'qrcode'
 import { join } from 'path'
 import { app } from 'electron'
 import type { MessageData, ContactInfo, RoomInfo, Stats, AutoReply } from '../../types'
+import store from '../store'
 
 export class BotManager extends EventEmitter {
   private bot: Wechaty
@@ -36,6 +37,10 @@ export class BotManager extends EventEmitter {
         }
       }
     })
+
+    this.friends = store.get('friends', []) as ContactInfo[]
+    this.rooms = store.get('rooms', []) as RoomInfo[]
+    this.autoReplies = store.get('autoReplies', []) as AutoReply[]
 
     this.initEventHandlers()
   }
@@ -73,7 +78,6 @@ export class BotManager extends EventEmitter {
             avatar: avatarDataUrl
           }
           this.emit('login', userInfo)
-          this.loadFriendsAndRooms()
         } catch (error) {
           console.error('Error processing avatar:', error)
           // 如果处理头像失败，发送没有头像的用户信息
@@ -141,27 +145,6 @@ export class BotManager extends EventEmitter {
       })
   }
 
-  private async loadFriendsAndRooms(): Promise<void> {
-    // 获取群聊数量
-    const thisRooms = await this.bot.Room.findAll()
-    const thisFriends = await this.bot.Contact.findAll()
-    this.friends = await Promise.all(
-      thisFriends.map(async (friend) => ({
-        id: friend.id,
-        name: friend.name(),
-        friend: friend.friend() ?? false,
-        alias: (await friend.alias()) ?? '',
-        signature: friend.payload?.signature ?? '',
-        gender: friend.gender() === 1 ? 'male' : 'female'
-      }))
-    )
-    this.rooms = thisRooms.map((room) => ({
-      id: room.id,
-      name: room.payload?.topic ?? '',
-      members: room.payload?.memberIdList ?? []
-    }))
-  }
-
   // 发送统计信息
   private emitStats() {
     this.emit('stats', this.stats)
@@ -201,7 +184,6 @@ export class BotManager extends EventEmitter {
     try {
       await this.bot.stop()
       this.initialized = false
-      // 只需要触发登出事件，不需要清除数据
       if (this.bot.currentUser) {
         this.emit('logout', {
           name: this.bot.currentUser.name(),
@@ -283,6 +265,7 @@ export class BotManager extends EventEmitter {
       )
       this.stats.friendCount = this.friends.filter((friend) => friend.friend).length
       this.stats.contactCount = this.friends.length
+      store.set('friends', this.friends)
       this.emitStats()
       return this.friends
     } catch (error) {
@@ -300,6 +283,8 @@ export class BotManager extends EventEmitter {
         members: room.payload?.memberIdList ?? []
       }))
       this.stats.groupCount = this.rooms.length
+
+      store.set('rooms', this.rooms)
       this.emitStats()
       return this.rooms
     } catch (error) {
@@ -311,11 +296,13 @@ export class BotManager extends EventEmitter {
   // 添加自动回复规则
   public addAutoReply(rule: AutoReply): void {
     this.autoReplies.push(rule)
+    this.saveAutoReplies()
   }
 
   // 删除自动回复规则
   public deleteAutoReply(id: string): void {
     this.autoReplies = this.autoReplies.filter((rule) => rule.id !== id)
+    this.saveAutoReplies()
   }
 
   // 更新自动回复规则
@@ -323,7 +310,13 @@ export class BotManager extends EventEmitter {
     const rule = this.autoReplies.find((r) => r.id === id)
     if (rule) {
       rule.enabled = enabled
+      this.saveAutoReplies()
     }
+  }
+
+  // 保存自动回复规则到存储
+  private saveAutoReplies(): void {
+    store.set('autoReplies', this.autoReplies)
   }
 
   // 获取所有自动回复规则
