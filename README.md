@@ -56,16 +56,19 @@ npm run build:linux
 ## 使用说明
 
 1. 登录功能
+
    - 扫描二维码登录
    - 支持自动重连
    - 显示登录状态
 
 2. 消息管理
+
    - 实时显示消息记录
    - 支持消息搜索
    - 显示群聊和私聊消息
 
 3. 联系人管理
+
    - 查看好友列表
    - 查看群聊列表
    - 支持手动刷新
@@ -114,7 +117,7 @@ MIT License
 
 ## 开发工具推荐
 
-- [VSCode](https://code.visualstudio.com/) 
+- [VSCode](https://code.visualstudio.com/)
 - [ESLint](https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint)
 - [Prettier](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode)
 - [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar)

@@ -17,8 +17,8 @@ function createWindow(): BrowserWindow {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false,
       nodeIntegration: true,
-      contextIsolation: true,
-      devTools: false
+      contextIsolation: true
+      // devTools: false
     }
   })
 
@@ -32,7 +32,7 @@ function createWindow(): BrowserWindow {
 
   mainWindow.on('ready-to-show', () => {
     mainWindow.show()
-    // mainWindow.webContents.openDevTools()
+    mainWindow.webContents.openDevTools()
   })
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
