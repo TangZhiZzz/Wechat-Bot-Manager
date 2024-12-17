@@ -60,6 +60,7 @@ export class BotManager extends EventEmitter {
   private initEventHandlers(): void {
     this.bot
       .on('scan', async (qrcode, status) => {
+        console.log(`Scan QR Code to login: ${status}\n${qrcode}`)
         this.qrcode = qrcode
         try {
           const qrcodeImageUrl = await QRCode.toDataURL(qrcode)
@@ -196,6 +197,9 @@ export class BotManager extends EventEmitter {
       .on('logout', (user: Contact, reason?: string) => {
         this.emit('logout', { name: user.name(), reason })
         console.log(`User ${user} logout, reason: ${reason}`)
+      })
+      .on('error', (e) => {
+        console.error('❌ bot error handle: ', e)
       })
   }
 
