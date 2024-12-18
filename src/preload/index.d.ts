@@ -1,5 +1,13 @@
 import { ElectronAPI } from '@electron-toolkit/preload'
-import type { UserInfo, Stats, ContactInfo, RoomInfo, Message, AutoReply } from '../types'
+import type {
+  UserInfo,
+  Stats,
+  ContactInfo,
+  RoomInfo,
+  Message,
+  AutoReply,
+  QrCodeData
+} from '../types'
 
 declare global {
   interface Window {
@@ -9,7 +17,7 @@ declare global {
         start: () => Promise<{ success: boolean; error?: string }>
         stop: () => Promise<{ success: boolean; error?: string }>
         getIsLoggedIn: () => Promise<{ loggedIn: boolean; error?: string }>
-        onScan: (callback: (data: { qrcode: string; status: string; url: string }) => void) => void
+        onScan: (callback: (data: QrCodeData) => void) => void
         onLogin: (callback: (loginStatus: boolean) => void) => void
         getLoginInfo: () => Promise<{
           name?: string
@@ -24,7 +32,7 @@ declare global {
         onMessage: (callback: (message: Message) => void) => void
         offMessage: (callback: (message: Message) => void) => void
         refreshQrcode: () => Promise<{ success: boolean; error?: string }>
-        offScan: (callback: (data: { qrcode: string; status: string; url: string }) => void) => void
+        offScan: (callback: (data: QrCodeData) => void) => void
         offLogin: (callback: (loginStatus: boolean) => void) => void
         refreshContacts: () => Promise<ContactInfo[]>
         refreshRooms: () => Promise<RoomInfo[]>

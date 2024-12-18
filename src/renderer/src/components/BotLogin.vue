@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
+import { QrCodeData, ScanStatus } from '../../../types'
 
 const qrcodeUrl = ref('')
 const isLoggedIn = ref(false)
@@ -29,24 +30,23 @@ const refreshQrcode = async () => {
 }
 
 // 处理扫码事件
-const handleScan = (data: { qrcode: string; status: string; url: string }) => {
-  console.log('Received scan event:', data)
+const handleScan = (data: QrCodeData) => {
   qrcodeUrl.value = data.url
   loading.value = false
   refreshing.value = false
 
   // 更新扫码状态
   switch (data.status) {
-    case 'SCAN_STATUS_WAITING':
+    case ScanStatus.Waiting:
       scanStatus.value = '等待扫码'
       break
-    case 'SCAN_STATUS_SCANNED':
+    case ScanStatus.Scanned:
       scanStatus.value = '已扫码，等待确认'
       break
-    case 'SCAN_STATUS_CONFIRMED':
+    case ScanStatus.Confirmed:
       scanStatus.value = '已确认，正在登录'
       break
-    case 'SCAN_STATUS_TIMEOUT':
+    case ScanStatus.Timeout:
       scanStatus.value = '二维码已过期，请刷新'
       break
     default:

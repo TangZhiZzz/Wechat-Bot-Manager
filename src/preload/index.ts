@@ -1,13 +1,13 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
-import type { ScanData, UserInfo, Stats, MessageData, AutoReply } from '../types'
+import type { UserInfo, Stats, MessageData, AutoReply, QrCodeData } from '../types'
 
 const botAPI = {
   start: () => ipcRenderer.invoke('bot:start'),
   stop: () => ipcRenderer.invoke('bot:stop'),
   getIsLoggedIn: () => ipcRenderer.invoke('bot:isLoggedIn'),
-  onScan: (callback: (data: ScanData) => void) => {
-    ipcRenderer.on('bot:scan', (_event, data: ScanData) => callback(data))
+  onScan: (callback: (data: QrCodeData) => void) => {
+    ipcRenderer.on('bot:scan', (_event, data: QrCodeData) => callback(data))
   },
   onLogin: (callback: (loginStatus: boolean) => void) => {
     ipcRenderer.on('bot:logged-in', (_event, loginStatus: boolean) => callback(loginStatus))
@@ -28,8 +28,8 @@ const botAPI = {
   },
   getFriends: () => ipcRenderer.invoke('bot:getFriends'),
   getRooms: () => ipcRenderer.invoke('bot:getRooms'),
-  offScan: (callback: (data: ScanData) => void) => {
-    ipcRenderer.removeListener('bot:scan', (_event, data: ScanData) => callback(data))
+  offScan: (callback: (data: QrCodeData) => void) => {
+    ipcRenderer.removeListener('bot:scan', (_event, data: QrCodeData) => callback(data))
   },
   offLogin: (callback: (data: UserInfo) => void) => {
     ipcRenderer.removeListener('bot:logged-in', (_event, data: UserInfo) => callback(data))

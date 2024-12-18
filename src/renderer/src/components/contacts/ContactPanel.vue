@@ -83,13 +83,13 @@ onMounted(() => {
             :class="['tab-btn', { active: activeTab === 'friend' }]"
             @click="handleTabChange('friend')"
           >
-            好友 ({{ friends.filter((item) => item.friend).length }})
+            好友
           </button>
           <button
             :class="['tab-btn', { active: activeTab === 'group' }]"
             @click="handleTabChange('group')"
           >
-            群聊 ({{ rooms.length }})
+            群聊
           </button>
         </div>
         <button class="refresh-btn" :disabled="loading" @click="refreshContacts">

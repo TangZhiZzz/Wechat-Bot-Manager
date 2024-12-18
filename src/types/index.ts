@@ -1,9 +1,3 @@
-export interface ScanData {
-  qrcode: string
-  status: string
-  url: string
-}
-
 export interface UserInfo {
   name: string
   id: string

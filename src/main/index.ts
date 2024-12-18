@@ -73,7 +73,6 @@ app.whenReady().then(async () => {
 
   //监听扫码事件
   botManager.on('scan', (data) => {
-    console.log('Forwarding scan event to renderer:', data)
     mainWindow.webContents.send('bot:scan', data)
   })
   //监听登录事件

@@ -10,8 +10,7 @@ import {
   type Stats,
   type AutoReply,
   type UserInfo,
-  type QrCodeData,
-  ScanStatus
+  type QrCodeData
 } from '../../types'
 import store from '../store'
 
@@ -35,7 +34,6 @@ export class BotManager extends EventEmitter {
     id: '',
     avatar: ''
   }
-
   private constructor() {
     super()
     const userDataPath = app.getPath('userData')
@@ -70,20 +68,15 @@ export class BotManager extends EventEmitter {
     return BotManager.instance
   }
   private initEventHandlers(): void {
-    //this.bot.on('scan', this.onScan)
     this.bot.on('scan', async (qrcode, status) => {
-      console.log(`Scan QR Code to login: ${status}\n${qrcode}`)
       try {
-        if (status === ScanStatus.Waiting || status === ScanStatus.Timeout) {
-          const qrcodeImageUrl = await QRCode.toDataURL(qrcode)
-          const data = {
-            qrcode,
-            status,
-            url: qrcodeImageUrl
-          } as QrCodeData
-          console.log(data)
-          this.emit('scan', data)
-        }
+        const qrcodeImageUrl = await QRCode.toDataURL(qrcode)
+        const data = {
+          qrcode,
+          status,
+          url: qrcodeImageUrl
+        } as QrCodeData
+        this.emit('scan', data)
       } catch (error) {
         console.error('Failed to generate QR code:', error)
       }
@@ -111,7 +104,6 @@ export class BotManager extends EventEmitter {
       this.emit('ready')
     })
     this.bot.on('message', async (message: WechatyMessage) => {
-      console.log(`Message: ${message}`)
       const content = message.text() // 消息内容
 
       // 过滤空消息
@@ -206,7 +198,6 @@ export class BotManager extends EventEmitter {
     })
     this.bot.on('logout', (user: Contact, reason?: string) => {
       this.emit('logout', { name: user.name(), reason })
-      console.log(`User ${user} logout, reason: ${reason}`)
     })
     this.bot.on('error', (e) => {
       console.error('❌ bot error handle: ', e)
@@ -241,11 +232,8 @@ export class BotManager extends EventEmitter {
 
   public async start(): Promise<void> {
     try {
-      console.log('Starting bot...')
       await this.bot.start()
       this.initialized = true
-
-      console.log('Bot started successfully')
     } catch (error) {
       console.error('Failed to start bot:', error)
       throw error
@@ -262,7 +250,6 @@ export class BotManager extends EventEmitter {
           reason: 'user_action'
         })
       }
-      console.log('Bot stopped successfully')
     } catch (error) {
       console.error('Failed to stop bot:', error)
       throw error
@@ -276,6 +263,7 @@ export class BotManager extends EventEmitter {
     try {
       const loggedIn = this.bot.isLoggedIn
       if (loggedIn && this.bot.currentUser) {
+        console.log(this.bot.currentUser)
         return true
       }
       return false
