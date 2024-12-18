@@ -6,7 +6,6 @@ const botAPI = {
   start: () => ipcRenderer.invoke('bot:start'),
   stop: () => ipcRenderer.invoke('bot:stop'),
   getIsLoggedIn: () => ipcRenderer.invoke('bot:isLoggedIn'),
-  getQrcode: () => ipcRenderer.invoke('bot:qrcode'),
   onScan: (callback: (data: ScanData) => void) => {
     ipcRenderer.on('bot:scan', (_event, data: ScanData) => callback(data))
   },

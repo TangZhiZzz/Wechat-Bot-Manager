@@ -109,10 +109,7 @@ app.whenReady().then(async () => {
       return { loggedIn: false, error: error instanceof Error ? error.message : 'Unknown error' }
     }
   })
-  //获取登录二维码
-  ipcMain.handle('bot:qrcode', () => {
-    return { qrcode: botManager.getQrcode() }
-  })
+
   ipcMain.handle('bot:getUserInfo', () => {
     return botManager.getUserInfo()
   })

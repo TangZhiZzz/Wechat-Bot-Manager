@@ -3,13 +3,21 @@ import { EventEmitter } from 'events'
 import * as QRCode from 'qrcode'
 import { join } from 'path'
 import { app } from 'electron'
-import type { MessageData, ContactInfo, RoomInfo, Stats, AutoReply, UserInfo } from '../../types'
+import {
+  type MessageData,
+  type ContactInfo,
+  type RoomInfo,
+  type Stats,
+  type AutoReply,
+  type UserInfo,
+  type QrCodeData,
+  ScanStatus
+} from '../../types'
 import store from '../store'
 
 export class BotManager extends EventEmitter {
   private bot: Wechaty
   private static instance: BotManager
-  private qrcode: string = ''
   private initialized: boolean = false
   private stats: Stats = {
     groupCount: 0,
@@ -62,140 +70,147 @@ export class BotManager extends EventEmitter {
     return BotManager.instance
   }
   private initEventHandlers(): void {
-    this.bot.on('scan', this.onScan)
-    this.bot.on('login', this.onLogin)
-    this.bot.on('ready', this.onReady)
-    this.bot.on('message', this.onMessage)
-    this.bot.on('logout', this.onLogout)
-    this.bot.on('error', this.onError)
-  }
-  onError(e) {
-    console.error('❌ bot error handle: ', e)
-  }
-  onLogout(user: Contact, reason?: string) {
-    this.emit('logout', { name: user.name(), reason })
-    console.log(`User ${user} logout, reason: ${reason}`)
-  }
-  async onScan(qrcode, status) {
-    console.log(`Scan QR Code to login: ${status}\n${qrcode}`)
-    this.qrcode = qrcode
-    try {
-      const qrcodeImageUrl = await QRCode.toDataURL(qrcode)
-      this.emit('scan', {
-        qrcode,
-        status,
-        url: qrcodeImageUrl
-      })
-    } catch (error) {
-      console.error('Failed to generate QR code:', error)
-    }
-  }
-  async onLogin(user: Contact) {
-    try {
-      const avatarFilebox = await user.avatar()
-      const avatarDataUrl = await avatarFilebox.toDataURL()
-
-      this.userInfo = {
-        name: user.name(),
-        id: user.id,
-        avatar: avatarDataUrl
+    //this.bot.on('scan', this.onScan)
+    this.bot.on('scan', async (qrcode, status) => {
+      console.log(`Scan QR Code to login: ${status}\n${qrcode}`)
+      try {
+        if (status === ScanStatus.Waiting || status === ScanStatus.Timeout) {
+          const qrcodeImageUrl = await QRCode.toDataURL(qrcode)
+          const data = {
+            qrcode,
+            status,
+            url: qrcodeImageUrl
+          } as QrCodeData
+          console.log(data)
+          this.emit('scan', data)
+        }
+      } catch (error) {
+        console.error('Failed to generate QR code:', error)
       }
-      this.emit('login', true)
-    } catch (error) {
-      console.error('Error processing avatar:', error)
-      // 如果处理头像失败，发送没有头像的用户信息
-      this.emit('login', false)
-    }
-  }
+    })
+    this.bot.on('login', async (user: Contact) => {
+      try {
+        const avatarFilebox = await user.avatar()
+        const avatarDataUrl = await avatarFilebox.toDataURL()
 
-  async onReady() {
-    this.initialized = true
-    this.emitStats()
-    this.emit('ready')
-  }
-  async onMessage(message: WechatyMessage) {
-    console.log(`Message: ${message}`)
-    const content = message.text() // 消息内容
+        this.userInfo = {
+          name: user.name(),
+          id: user.id,
+          avatar: avatarDataUrl
+        }
+        this.emit('login', true)
+      } catch (error) {
+        console.error('Error processing avatar:', error)
+        // 如果处理头像失败，发送没有头像的用户信息
+        this.emit('login', false)
+      }
+    })
+    this.bot.on('ready', () => {
+      this.initialized = true
+      this.emitStats()
+      this.emit('ready')
+    })
+    this.bot.on('message', async (message: WechatyMessage) => {
+      console.log(`Message: ${message}`)
+      const content = message.text() // 消息内容
 
-    // 过滤空消息
-    if (message.text() === '') return
-    // 过滤未知消息
-    if (message.type() === this.bot.Message.Type.Unknown) return
+      // 过滤空消息
+      if (message.text() === '') return
+      // 过滤未知消息
+      if (message.type() === this.bot.Message.Type.Unknown) return
 
-    // 记录活跃联系人
-    const sender = message.talker()
-    const room = message.room() // 是否是群消息
-    const roomName = (await room?.topic()) || null // 群名称
-    // 存储消息
-    const messageData: MessageData = {
-      id: message.id,
-      content: content,
-      sender: sender.name(),
-      room: roomName,
-      timestamp: message.date().getTime(),
-      type: message.type() === this.bot.Message.Type.Text ? 'text' : 'other'
-    }
-    this.messages.unshift(messageData)
-    // 限制消息数量
-    if (this.messages.length > 100) {
-      this.messages = this.messages.slice(0, 100)
-    }
+      // 记录活跃联系人
+      const sender = message.talker()
+      const room = message.room() // 是否是群消息
+      const roomName = (await room?.topic()) || null // 群名称
+      // 存储消息
+      const messageData: MessageData = {
+        id: message.id,
+        content: content,
+        sender: sender.name(),
+        room: roomName,
+        timestamp: message.date().getTime(),
+        type: message.type() === this.bot.Message.Type.Text ? 'text' : 'other'
+      }
+      this.messages.unshift(messageData)
+      // 限制消息数量
+      if (this.messages.length > 100) {
+        this.messages = this.messages.slice(0, 100)
+      }
 
-    // 群聊只有被@时才自动回复
-    if (room && content.includes('@' + this.userName)) {
-      const question = (await message.mentionText()) || content.replace(`@${this.userName}`, '') // 去掉艾特的消息主体
-      const matchedRule = this.matchAutoReply(question)
-      if (matchedRule) {
-        try {
-          if (matchedRule.replyType === 'text') {
-            await message.say(matchedRule.content)
-            // 自动回复的消息也要加到messagesData
-            const autoReplyMessageData: MessageData = {
-              id: Date.now().toString(),
-              content:
-                '自动回复: ' + sender.name() + ':' + message.text() + ' -> ' + matchedRule.content,
-              sender: 'auto-reply',
-              room: roomName,
-              timestamp: Date.now(),
-              type: 'text'
+      // 群聊只有被@时才自动回复
+      if (room && content.includes('@' + this.userName)) {
+        const question = (await message.mentionText()) || content.replace(`@${this.userName}`, '') // 去掉艾特的消息主体
+        const matchedRule = this.matchAutoReply(question)
+        if (matchedRule) {
+          try {
+            if (matchedRule.replyType === 'text') {
+              await message.say(matchedRule.content)
+              // 自动回复的消息也要加到messagesData
+              const autoReplyMessageData: MessageData = {
+                id: Date.now().toString(),
+                content:
+                  '自动回复: ' +
+                  sender.name() +
+                  ':' +
+                  message.text() +
+                  ' -> ' +
+                  matchedRule.content,
+                sender: 'auto-reply',
+                room: roomName,
+                timestamp: Date.now(),
+                type: 'text'
+              }
+              this.messages.unshift(autoReplyMessageData)
+              this.emit('message', this.serializeMessage(autoReplyMessageData))
             }
-            this.messages.unshift(autoReplyMessageData)
-            this.emit('message', this.serializeMessage(autoReplyMessageData))
+          } catch (error) {
+            console.error('Failed to send auto reply:', error)
           }
-        } catch (error) {
-          console.error('Failed to send auto reply:', error)
+        }
+      } else {
+        const matchedRule = this.matchAutoReply(content)
+
+        if (matchedRule) {
+          try {
+            if (matchedRule.replyType === 'text') {
+              await message.say(matchedRule.content)
+              // 自动回复的消息也要加到messagesData
+              const autoReplyMessageData: MessageData = {
+                id: Date.now().toString(),
+                content:
+                  '自动回复: ' +
+                  sender.name() +
+                  ':' +
+                  message.text() +
+                  ' -> ' +
+                  matchedRule.content,
+                sender: 'auto-reply',
+                room: roomName,
+                timestamp: Date.now(),
+                type: 'text'
+              }
+              this.messages.unshift(autoReplyMessageData)
+              this.emit('message', this.serializeMessage(autoReplyMessageData))
+            }
+          } catch (error) {
+            console.error('Failed to send auto reply:', error)
+          }
         }
       }
-    } else {
-      const matchedRule = this.matchAutoReply(content)
 
-      if (matchedRule) {
-        try {
-          if (matchedRule.replyType === 'text') {
-            await message.say(matchedRule.content)
-            // 自动回复的消息也要加到messagesData
-            const autoReplyMessageData: MessageData = {
-              id: Date.now().toString(),
-              content:
-                '自动回复: ' + sender.name() + ':' + message.text() + ' -> ' + matchedRule.content,
-              sender: 'auto-reply',
-              room: roomName,
-              timestamp: Date.now(),
-              type: 'text'
-            }
-            this.messages.unshift(autoReplyMessageData)
-            this.emit('message', this.serializeMessage(autoReplyMessageData))
-          }
-        } catch (error) {
-          console.error('Failed to send auto reply:', error)
-        }
-      }
-    }
-
-    // 发送消息事件
-    this.emit('message', this.serializeMessage(messageData))
-    // 发送统计更新
-    this.emitStats()
+      // 发送消息事件
+      this.emit('message', this.serializeMessage(messageData))
+      // 发送统计更新
+      this.emitStats()
+    })
+    this.bot.on('logout', (user: Contact, reason?: string) => {
+      this.emit('logout', { name: user.name(), reason })
+      console.log(`User ${user} logout, reason: ${reason}`)
+    })
+    this.bot.on('error', (e) => {
+      console.error('❌ bot error handle: ', e)
+    })
   }
 
   // 发送统计信息
@@ -268,10 +283,6 @@ export class BotManager extends EventEmitter {
       console.error('Error checking login status:', error)
       return false
     }
-  }
-
-  public getQrcode(): string {
-    return this.qrcode
   }
 
   private serializeMessage(message: MessageData): MessageData {

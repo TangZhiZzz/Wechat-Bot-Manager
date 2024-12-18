@@ -9,7 +9,6 @@ declare global {
         start: () => Promise<{ success: boolean; error?: string }>
         stop: () => Promise<{ success: boolean; error?: string }>
         getIsLoggedIn: () => Promise<{ loggedIn: boolean; error?: string }>
-        getQrcode: () => Promise<{ qrcode: string }>
         onScan: (callback: (data: { qrcode: string; status: string; url: string }) => void) => void
         onLogin: (callback: (loginStatus: boolean) => void) => void
         getLoginInfo: () => Promise<{
