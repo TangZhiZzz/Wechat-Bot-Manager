@@ -5,14 +5,15 @@ import type { ScanData, UserInfo, Stats, MessageData, AutoReply } from '../types
 const botAPI = {
   start: () => ipcRenderer.invoke('bot:start'),
   stop: () => ipcRenderer.invoke('bot:stop'),
-  getStatus: () => ipcRenderer.invoke('bot:status'),
+  getIsLoggedIn: () => ipcRenderer.invoke('bot:isLoggedIn'),
   getQrcode: () => ipcRenderer.invoke('bot:qrcode'),
   onScan: (callback: (data: ScanData) => void) => {
     ipcRenderer.on('bot:scan', (_event, data: ScanData) => callback(data))
   },
-  onLogin: (callback: (data: UserInfo) => void) => {
-    ipcRenderer.on('bot:logged-in', (_event, data: UserInfo) => callback(data))
+  onLogin: (callback: (loginStatus: boolean) => void) => {
+    ipcRenderer.on('bot:logged-in', (_event, loginStatus: boolean) => callback(loginStatus))
   },
+  getUserInfo: () => ipcRenderer.invoke('bot:getUserInfo'),
   getStats: () => ipcRenderer.invoke('bot:getStats'),
   onStatsUpdate: (callback: (stats: Stats) => void) => {
     ipcRenderer.on('bot:stats-updated', (_event, stats: Stats) => callback(stats))
@@ -34,7 +35,7 @@ const botAPI = {
   offLogin: (callback: (data: UserInfo) => void) => {
     ipcRenderer.removeListener('bot:logged-in', (_event, data: UserInfo) => callback(data))
   },
-  refreshFriends: () => ipcRenderer.invoke('bot:refreshFriends'),
+  refreshContacts: () => ipcRenderer.invoke('bot:refreshContacts'),
   refreshRooms: () => ipcRenderer.invoke('bot:refreshRooms'),
   getAutoReplies: () => ipcRenderer.invoke('bot:getAutoReplies'),
   addAutoReply: (rule: AutoReply) => ipcRenderer.invoke('bot:addAutoReply', rule),

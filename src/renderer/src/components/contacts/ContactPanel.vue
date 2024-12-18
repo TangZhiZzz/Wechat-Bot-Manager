@@ -55,7 +55,7 @@ const refreshContacts = async () => {
   try {
     loading.value = true
     if (activeTab.value === 'friend') {
-      const list = await window.api.bot.refreshFriends()
+      const list = await window.api.bot.refreshContacts()
       friends.value = list
     } else {
       const list = await window.api.bot.refreshRooms()

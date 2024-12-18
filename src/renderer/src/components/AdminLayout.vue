@@ -1,30 +1,23 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import DashboardPanel from './dashboard/DashboardPanel.vue'
 import MessagePanel from './messages/MessagePanel.vue'
 import ContactPanel from './contacts/ContactPanel.vue'
 import SettingPanel from './settings/SettingPanel.vue'
 
-interface Props {
-  userInfo: {
-    name: string
-    id: string
-    avatar: string
-  } | null
-  isLoggedIn: boolean
-}
+import { UserInfo } from '../../../types'
 
-const props = defineProps<Props>()
 const emit = defineEmits<{
-  logout: []
+  logout: [boolean]
 }>()
 const currentTab = ref('dashboard')
+const currUserInfo = ref<UserInfo>()
 
 const handleLogout = async () => {
   try {
     await window.api.bot.stop()
     // 触发父组件的登出处理
-    emit('logout')
+    emit('logout', false)
   } catch (err) {
     console.error('Failed to logout:', err)
   }
@@ -35,6 +28,11 @@ const handleAvatarError = (e: Event) => {
   const img = e.target as HTMLImageElement
   img.src = '../assets/avatar.png'
 }
+
+onMounted(async () => {
+  const userInfo = await window.api.bot.getUserInfo()
+  currUserInfo.value = userInfo ?? undefined
+})
 </script>
 
 <template>
@@ -43,16 +41,13 @@ const handleAvatarError = (e: Event) => {
     <div class="sidebar">
       <div class="sidebar-header">
         <img
-          :src="props.userInfo?.avatar || '../assets/avatar.png'"
+          :src="currUserInfo?.avatar || '../assets/avatar.png'"
           alt="Avatar"
           class="avatar"
           @error="handleAvatarError"
         />
         <div class="user-info">
-          <h3>{{ props.userInfo?.name }}</h3>
-          <span class="status" :class="{ online: props.isLoggedIn }">
-            {{ props.isLoggedIn ? '在线' : '离线' }}
-          </span>
+          <h3>{{ currUserInfo?.name }}</h3>
         </div>
       </div>
 
@@ -168,15 +163,6 @@ const handleAvatarError = (e: Event) => {
   margin: 0;
   font-size: 14px;
   color: white;
-}
-
-.status {
-  font-size: 12px;
-  color: #a4b0be;
-}
-
-.status.online {
-  color: #2ecc71;
 }
 
 .nav-menu {

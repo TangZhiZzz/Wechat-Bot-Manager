@@ -1,12 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 
-interface UserInfo {
-  name: string
-  id: string
-  avatar: string
-}
-
 const qrcodeUrl = ref('')
 const isLoggedIn = ref(false)
 const userName = ref('')
@@ -17,7 +11,7 @@ const refreshing = ref(false)
 
 // 定义 emit
 const emit = defineEmits<{
-  login: [UserInfo]
+  login: [boolean]
 }>()
 
 // 添加刷新二维码方法
@@ -61,16 +55,10 @@ const handleScan = (data: { qrcode: string; status: string; url: string }) => {
 }
 
 // 处理登录事件
-const handleLogin = (data: UserInfo) => {
-  console.log('Received login event:', data)
-  isLoggedIn.value = true
-  userName.value = data.name
-  qrcodeUrl.value = ''
-  loading.value = false
-  error.value = ''
-  scanStatus.value = ''
+const handleLogin = (loginStatus: boolean) => {
+  isLoggedIn.value = loginStatus
   // 触发登录事件，传递完整的用户信息
-  emit('login', data)
+  emit('login', loginStatus)
 }
 
 // 添加事件清理函数
@@ -205,6 +193,7 @@ onUnmounted(() => {
   0% {
     transform: rotate(0deg);
   }
+
   100% {
     transform: rotate(360deg);
   }
