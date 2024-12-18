@@ -1,12 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-
-interface Stats {
-  groupCount: number
-  friendCount: number
-  contactCount: number
-  autoReplyCount: number
-}
+import { Stats } from '../../../../types'
 
 const stats = ref<Stats>({
   groupCount: 0,
@@ -83,9 +77,11 @@ onMounted(async () => {
   text-align: center;
   transition: transform 0.2s;
 }
+
 .stat-card h3 {
   color: #2c3e50;
 }
+
 .stat-card:hover {
   transform: translateY(-2px);
 }

@@ -1,14 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-
-interface MessageData {
-  id: string
-  content: string
-  sender: string
-  room: string | null
-  timestamp: number
-  type: 'text' | 'image' | 'file' | 'other'
-}
+import { MessageData } from '../../../../types'
 
 const searchQuery = ref('')
 const messages = ref<MessageData[]>([])
