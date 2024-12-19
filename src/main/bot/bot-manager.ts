@@ -10,7 +10,8 @@ import {
   type Stats,
   type AutoReply,
   type UserInfo,
-  type QrCodeData
+  type QrCodeData,
+  MessageType
 } from '../../types'
 import store from '../store'
 
@@ -110,7 +111,6 @@ export class BotManager extends EventEmitter {
     })
     this.bot.on('message', async (message: WechatyMessage) => {
       const content = message.text() // 消息内容
-
       // 过滤空消息
       if (message.text() === '') return
       // 过滤未知消息
@@ -127,7 +127,7 @@ export class BotManager extends EventEmitter {
         sender: sender.name(),
         room: roomName,
         timestamp: message.date().getTime(),
-        type: message.type() === this.bot.Message.Type.Text ? 'text' : 'other'
+        type: message.type()
       }
       this.messages.unshift(messageData)
       // 限制消息数量
@@ -156,7 +156,7 @@ export class BotManager extends EventEmitter {
                 sender: 'auto-reply',
                 room: roomName,
                 timestamp: Date.now(),
-                type: 'text'
+                type: MessageType.Text
               }
               this.messages.unshift(autoReplyMessageData)
               this.emit('message', this.serializeMessage(autoReplyMessageData))
@@ -185,7 +185,7 @@ export class BotManager extends EventEmitter {
                 sender: 'auto-reply',
                 room: roomName,
                 timestamp: Date.now(),
-                type: 'text'
+                type: MessageType.Text
               }
               this.messages.unshift(autoReplyMessageData)
               this.emit('message', this.serializeMessage(autoReplyMessageData))
