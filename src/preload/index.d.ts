@@ -26,7 +26,7 @@ declare global {
         getUserInfo: () => Promise<UserInfo | null>
         getStats: () => Promise<Stats>
         onStatsUpdate: (callback: (stats: Stats) => void) => void
-        getFriends: () => Promise<ContactInfo[]>
+        getContacts: () => Promise<ContactInfo[]>
         getRooms: () => Promise<RoomInfo[]>
         getMessages: () => Promise<Message[]>
         onMessage: (callback: (message: Message) => void) => void

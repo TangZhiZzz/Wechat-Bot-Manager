@@ -26,7 +26,7 @@ const botAPI = {
       callback(message)
     )
   },
-  getFriends: () => ipcRenderer.invoke('bot:getFriends'),
+  getContacts: () => ipcRenderer.invoke('bot:getContacts'),
   getRooms: () => ipcRenderer.invoke('bot:getRooms'),
   offScan: (callback: (data: QrCodeData) => void) => {
     ipcRenderer.removeListener('bot:scan', (_event, data: QrCodeData) => callback(data))

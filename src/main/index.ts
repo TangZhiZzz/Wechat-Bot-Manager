@@ -119,8 +119,8 @@ app.whenReady().then(async () => {
   })
 
   //添加获取联系人的 IPC 处理
-  ipcMain.handle('bot:getFriends', async () => {
-    return botManager.getFriends()
+  ipcMain.handle('bot:getContacts', async () => {
+    return botManager.getContacts()
   })
 
   ipcMain.handle('bot:getRooms', async () => {

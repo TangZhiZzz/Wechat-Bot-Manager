@@ -6,13 +6,13 @@ import type { ContactInfo, RoomInfo } from '../../../../types'
 const searchQuery = ref('')
 const friends = ref<ContactInfo[]>([])
 const rooms = ref<RoomInfo[]>([])
-const activeTab = ref<'friend' | 'group'>('friend')
+const activeTab = ref<'contact' | 'group'>('contact')
 const loading = ref(false)
-const loadedTypes = ref(new Set<'friend' | 'group'>())
+const loadedTypes = ref(new Set<'contact' | 'group'>())
 
 const filteredContacts = computed(() => {
   const list =
-    activeTab.value === 'friend' ? friends.value.filter((item) => item.friend) : rooms.value
+    activeTab.value === 'contact' ? friends.value.filter((item) => item.friend) : rooms.value
   return list.filter(
     (contact) =>
       searchQuery.value === '' ||
@@ -20,14 +20,14 @@ const filteredContacts = computed(() => {
   )
 })
 
-const handleTabChange = async (type: 'friend' | 'group') => {
+const handleTabChange = async (type: 'contact' | 'group') => {
   activeTab.value = type
   // 如果没有加载过该类型的数据，则加载
   if (!loadedTypes.value.has(type)) {
     try {
       loading.value = true
-      if (type === 'friend') {
-        const list = await window.api.bot.getFriends()
+      if (type === 'contact') {
+        const list = await window.api.bot.getContacts()
         friends.value = list
       } else {
         const list = await window.api.bot.getRooms()
@@ -54,7 +54,7 @@ const getRoomName = (id: string) => {
 const refreshContacts = async () => {
   try {
     loading.value = true
-    if (activeTab.value === 'friend') {
+    if (activeTab.value === 'contact') {
       const list = await window.api.bot.refreshContacts()
       friends.value = list
     } else {
@@ -70,7 +70,7 @@ const refreshContacts = async () => {
 
 // 初始加载好友列表
 onMounted(() => {
-  handleTabChange('friend')
+  handleTabChange('contact')
 })
 </script>
 
@@ -80,8 +80,8 @@ onMounted(() => {
       <div class="contacts-header">
         <div class="tabs">
           <button
-            :class="['tab-btn', { active: activeTab === 'friend' }]"
-            @click="handleTabChange('friend')"
+            :class="['tab-btn', { active: activeTab === 'contact' }]"
+            @click="handleTabChange('contact')"
           >
             好友
           </button>
@@ -105,7 +105,7 @@ onMounted(() => {
             <input
               v-model="searchQuery"
               type="text"
-              :placeholder="activeTab === 'friend' ? '搜索好友...' : '搜索群聊...'"
+              :placeholder="activeTab === 'contact' ? '搜索好友...' : '搜索群聊...'"
               class="search-input"
             />
             <button v-if="searchQuery" class="clear-btn" @click="searchQuery = ''">✕</button>
@@ -114,7 +114,7 @@ onMounted(() => {
 
         <div v-if="loading" class="loading-state">加载中...</div>
 
-        <div v-else-if="activeTab === 'friend'" class="contact-section">
+        <div v-else-if="activeTab === 'contact'" class="contact-section">
           <template v-if="filteredContacts.length > 0">
             <div v-for="contact in filteredContacts" :key="contact.id" class="contact-item">
               <img :src="defaultAvatar" alt="Avatar" class="contact-avatar" />

@@ -25,7 +25,7 @@ export class BotManager extends EventEmitter {
     autoReplyCount: 0
   }
   private messages: MessageData[] = []
-  private friends: ContactInfo[] = []
+  private contacts: ContactInfo[] = []
   private rooms: RoomInfo[] = []
   private autoReplies: AutoReply[] = []
   private userName: string = ''
@@ -49,12 +49,12 @@ export class BotManager extends EventEmitter {
       }
     })
 
-    this.friends = store.get('friends', []) as ContactInfo[]
+    this.contacts = store.get('contacts', []) as ContactInfo[]
     this.rooms = store.get('rooms', []) as RoomInfo[]
     this.autoReplies = store.get('autoReplies', []) as AutoReply[]
 
-    this.stats.friendCount = this.friends.filter((friend) => friend.friend).length
-    this.stats.contactCount = this.friends.length
+    this.stats.friendCount = this.contacts.filter((friend) => friend.friend).length
+    this.stats.contactCount = this.contacts.length
     this.stats.groupCount = this.rooms.length
     this.stats.autoReplyCount = this.autoReplies.length
 
@@ -262,8 +262,9 @@ export class BotManager extends EventEmitter {
     }
     try {
       const loggedIn = this.bot.isLoggedIn
-      if (loggedIn && this.bot.currentUser) {
-        console.log(this.bot.currentUser)
+      const currentUser = this.bot.currentUser
+      if (loggedIn && currentUser) {
+        console.log('currentUser', currentUser)
         return true
       }
       return false
@@ -300,9 +301,9 @@ export class BotManager extends EventEmitter {
     }
   }
 
-  public async getFriends(): Promise<ContactInfo[]> {
+  public async getContacts(): Promise<ContactInfo[]> {
     try {
-      return this.friends
+      return this.contacts
     } catch (error) {
       console.error('Error getting friends:', error)
       return []
@@ -320,9 +321,9 @@ export class BotManager extends EventEmitter {
   //刷新联系人
   public async refreshContacts(): Promise<ContactInfo[]> {
     try {
-      const thisFriends = await this.bot.Contact.findAll()
-      this.friends = await Promise.all(
-        thisFriends.map(async (friend) => ({
+      const thisContacts = await this.bot.Contact.findAll()
+      this.contacts = await Promise.all(
+        thisContacts.map(async (friend) => ({
           id: friend.id,
           name: friend.name(),
           friend: friend.friend() ?? false,
@@ -331,11 +332,11 @@ export class BotManager extends EventEmitter {
           gender: friend.gender() === 1 ? 'male' : 'female'
         }))
       )
-      this.stats.friendCount = this.friends.filter((friend) => friend.friend).length
-      this.stats.contactCount = this.friends.length
-      store.set('friends', this.friends)
+      this.stats.friendCount = this.contacts.filter((friend) => friend.friend).length
+      this.stats.contactCount = this.contacts.length
+      store.set('friends', this.contacts)
       this.emitStats()
-      return this.friends
+      return this.contacts
     } catch (error) {
       console.error('Error refreshing friends:', error)
       return []
