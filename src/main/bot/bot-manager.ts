@@ -242,14 +242,9 @@ export class BotManager extends EventEmitter {
 
   public async stop(): Promise<void> {
     try {
+      await this.bot.logout()
       await this.bot.stop()
       this.initialized = false
-      if (this.bot.currentUser) {
-        this.emit('logout', {
-          name: this.bot.currentUser.name(),
-          reason: 'user_action'
-        })
-      }
     } catch (error) {
       console.error('Failed to stop bot:', error)
       throw error
