@@ -110,7 +110,13 @@ export class BotManager extends EventEmitter {
       this.emit('ready')
     })
     this.bot.on('message', async (message: WechatyMessage) => {
-      const content = message.text() // 消息内容
+      let content = '' // 消息内容
+      if (message.type() == MessageType.Text) {
+        content = message.text()
+      }
+      if (message.type() == MessageType.Image) {
+        content = '[图片消息]'
+      }
       // 过滤空消息
       if (message.text() === '') return
       // 过滤未知消息
