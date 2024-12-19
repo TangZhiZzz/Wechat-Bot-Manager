@@ -51,25 +51,16 @@ const getRoomName = (id: string) => {
   return newName?.join('，')
 }
 
-const refreshContacts = async () => {
-  try {
-    loading.value = true
-    if (activeTab.value === 'contact') {
-      const list = await window.api.bot.refreshContacts()
-      friends.value = list
-    } else {
-      const list = await window.api.bot.refreshRooms()
-      rooms.value = list
-    }
-  } catch (err) {
-    console.error(`Failed to refresh ${activeTab.value}s:`, err)
-  } finally {
-    loading.value = false
-  }
+const loadData = async () => {
+  const list = await window.api.bot.getContacts()
+  friends.value = list
+  const list2 = await window.api.bot.getRooms()
+  rooms.value = list2
 }
 
 // 初始加载好友列表
 onMounted(() => {
+  loadData()
   handleTabChange('contact')
 })
 </script>
@@ -92,10 +83,10 @@ onMounted(() => {
             群聊
           </button>
         </div>
-        <button class="refresh-btn" :disabled="loading" @click="refreshContacts">
+        <!-- <button class="refresh-btn" :disabled="loading" @click="refreshContacts">
           <span v-if="loading">刷新中...</span>
           <span v-else>刷新列表</span>
-        </button>
+        </button> -->
       </div>
 
       <div class="contact-list">

@@ -83,6 +83,11 @@ export class BotManager extends EventEmitter {
     })
     this.bot.on('login', async (user: Contact) => {
       try {
+        //登录成功刷新联系人和群组
+        this.refreshContacts()
+        this.refreshRooms()
+
+        //获取用户信息
         const avatarFilebox = await user.avatar()
         const avatarDataUrl = await avatarFilebox.toDataURL()
 
