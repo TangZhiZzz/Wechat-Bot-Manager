@@ -116,6 +116,15 @@ export class BotManager extends EventEmitter {
       }
       if (message.type() == MessageType.Image) {
         content = '[图片消息]'
+        // const fileBox = await message.toFileBox()
+        // const fileName = fileBox.name
+        // fileBox.toFile(fileName)
+      }
+      if (message.type() == MessageType.Audio) {
+        content = '[媒体消息]'
+        // const fileBox = await message.toFileBox()
+        // const fileName = fileBox.name
+        // fileBox.toFile(fileName)
       }
       // 过滤空消息
       if (message.text() === '') return
