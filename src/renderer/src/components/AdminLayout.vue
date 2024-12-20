@@ -78,6 +78,14 @@ onMounted(async () => {
         </a>
         <a
           href="#"
+          :class="{ active: currentTab === 'rooms' }"
+          @click.prevent="currentTab = 'rooms'"
+        >
+          <i class="icon">👥</i>
+          群组
+        </a>
+        <a
+          href="#"
           :class="{ active: currentTab === 'settings' }"
           @click.prevent="currentTab = 'settings'"
         >
@@ -114,6 +122,7 @@ onMounted(async () => {
         <DashboardPanel v-if="currentTab === 'dashboard'" />
         <MessagePanel v-else-if="currentTab === 'messages'" />
         <ContactPanel v-else-if="currentTab === 'contacts'" />
+        <ContactPanel v-else-if="currentTab === 'rooms'" />
         <SettingPanel v-else-if="currentTab === 'settings'" />
       </div>
     </div>
