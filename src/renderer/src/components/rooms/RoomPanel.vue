@@ -1,25 +1,26 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import defaultAvatar from '@renderer/assets/avatar.png'
-import type { ContactInfo } from '../../../../types'
+import type { ContactInfo, RoomInfo } from '../../../../types'
 
 const searchQuery = ref('')
+const rooms = ref<RoomInfo[]>([])
 const contacts = ref<ContactInfo[]>([])
 const loading = ref(false)
 
-const filteredContacts = computed(() => {
-  const list = contacts.value.filter((item) => item.friend)
+const filteredRooms = computed(() => {
+  const list = rooms.value
   return list.filter(
-    (contact) =>
-      searchQuery.value === '' ||
-      contact.name.toLowerCase().includes(searchQuery.value.toLowerCase())
+    (room) =>
+      searchQuery.value === '' || room.name.toLowerCase().includes(searchQuery.value.toLowerCase())
   )
 })
 
 const handleTabChange = async () => {
   try {
-    const list = await window.api.bot.getContacts()
-    contacts.value = list
+    loading.value = true
+    const list = await window.api.bot.getRooms()
+    rooms.value = list
   } catch (err) {
     console.error(`Failed to fetch :`, err)
   } finally {
@@ -27,7 +28,17 @@ const handleTabChange = async () => {
   }
 }
 
+const getRoomName = (id: string) => {
+  const room = rooms.value.find((room) => room.id === id)
+  const newName = room?.members.map((member) => {
+    const room = contacts.value.find((room) => room.id === member)
+    return room?.name
+  })
+  return newName?.join('，')
+}
+
 const loadData = async () => {
+  rooms.value = await window.api.bot.getRooms()
   contacts.value = await window.api.bot.getContacts()
 }
 
@@ -39,16 +50,16 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="contacts">
-    <div class="contacts-container">
-      <div class="contact-list">
+  <div class="rooms">
+    <div class="rooms-container">
+      <div class="room-list">
         <div class="search-box">
           <div class="search-input-wrapper">
             <i class="search-icon">🔍</i>
             <input
               v-model="searchQuery"
               type="text"
-              :placeholder="'搜索好友...'"
+              :placeholder="'搜索群聊...'"
               class="search-input"
             />
             <button v-if="searchQuery" class="clear-btn" @click="searchQuery = ''">✕</button>
@@ -57,18 +68,18 @@ onMounted(() => {
 
         <div v-if="loading" class="loading-state">加载中...</div>
 
-        <div v-else class="contact-section">
-          <template v-if="filteredContacts.length > 0">
-            <div v-for="contact in filteredContacts" :key="contact.id" class="contact-item">
-              <img :src="defaultAvatar" alt="Avatar" class="contact-avatar" />
-              <div class="contact-info">
-                <div class="contact-name">
-                  {{ contact.name }}
+        <div v-else class="room-section">
+          <template v-if="filteredRooms.length > 0">
+            <div v-for="room in filteredRooms" :key="room.id" class="room-item">
+              <img :src="defaultAvatar" alt="Avatar" class="room-avatar" />
+              <div class="room-info">
+                <div class="room-name">
+                  {{ room.name === '' ? getRoomName(room.id) : room.name }}
                 </div>
               </div>
             </div>
           </template>
-          <div v-else class="empty-state">暂无好友</div>
+          <div v-else class="empty-state">暂无群聊</div>
         </div>
       </div>
     </div>
@@ -76,7 +87,7 @@ onMounted(() => {
 </template>
 
 <style scoped>
-.contacts-container {
+.rooms-container {
   background: white;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
@@ -85,7 +96,7 @@ onMounted(() => {
   flex-direction: column;
 }
 
-.contacts-header {
+.rooms-header {
   padding: 16px;
   border-bottom: 1px solid #eee;
 }
@@ -172,7 +183,7 @@ onMounted(() => {
   color: #666;
 }
 
-.contact-item {
+.room-item {
   display: flex;
   align-items: center;
   padding: 12px;
@@ -180,29 +191,29 @@ onMounted(() => {
   transition: all 0.2s;
 }
 
-.contact-item:hover {
+.room-item:hover {
   background: #f8f9fa;
   transform: translateX(4px);
 }
 
-.contact-avatar {
+.room-avatar {
   width: 40px;
   height: 40px;
   border-radius: 50%;
   margin-right: 12px;
 }
 
-.contact-info {
+.room-info {
   flex: 1;
 }
 
-.contact-name {
+.room-name {
   font-weight: 500;
   color: #2c3e50;
   margin-bottom: 4px;
 }
 
-.contact-last-message {
+.room-last-message {
   font-size: 12px;
   color: #7f8c8d;
 }
@@ -225,7 +236,7 @@ onMounted(() => {
   font-size: 14px;
 }
 
-.contact-section {
+.room-section {
   margin-top: 16px;
 }
 

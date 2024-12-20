@@ -3,6 +3,7 @@ import { onMounted, ref } from 'vue'
 import DashboardPanel from './dashboard/DashboardPanel.vue'
 import MessagePanel from './messages/MessagePanel.vue'
 import ContactPanel from './contacts/ContactPanel.vue'
+import RoomPanel from './rooms/RoomPanel.vue'
 import SettingPanel from './settings/SettingPanel.vue'
 
 import { UserInfo } from '../../../types'
@@ -12,7 +13,36 @@ const emit = defineEmits<{
 }>()
 const currentTab = ref('dashboard')
 const currUserInfo = ref<UserInfo>()
-
+const tabList = [
+  {
+    value: 'dashboard',
+    text: '仪表盘',
+    icon: '📊'
+  },
+  {
+    value: 'messages',
+    text: '消息记录',
+    icon: '💬'
+  },
+  {
+    value: 'contacts',
+    text: '好友',
+    icon: '👤'
+  },
+  {
+    value: 'rooms',
+    text: '群组',
+    icon: '👥'
+  },
+  {
+    value: 'settings',
+    text: '设置',
+    icon: '⚙️'
+  }
+]
+const getTabText = (value: string) => {
+  return tabList.find((tab) => tab.value === value)?.text
+}
 const handleLogout = async () => {
   try {
     await window.api.bot.stop()
@@ -53,44 +83,14 @@ onMounted(async () => {
 
       <nav class="nav-menu">
         <a
+          v-for="tab in tabList"
+          :key="tab.value"
           href="#"
-          :class="{ active: currentTab === 'dashboard' }"
-          @click.prevent="currentTab = 'dashboard'"
+          :class="{ active: currentTab === tab.value }"
+          @click.prevent="currentTab = tab.value"
         >
-          <i class="icon">📊</i>
-          仪表盘
-        </a>
-        <a
-          href="#"
-          :class="{ active: currentTab === 'messages' }"
-          @click.prevent="currentTab = 'messages'"
-        >
-          <i class="icon">💬</i>
-          消息记录
-        </a>
-        <a
-          href="#"
-          :class="{ active: currentTab === 'contacts' }"
-          @click.prevent="currentTab = 'contacts'"
-        >
-          <i class="icon">👥</i>
-          联系人
-        </a>
-        <a
-          href="#"
-          :class="{ active: currentTab === 'rooms' }"
-          @click.prevent="currentTab = 'rooms'"
-        >
-          <i class="icon">👥</i>
-          群组
-        </a>
-        <a
-          href="#"
-          :class="{ active: currentTab === 'settings' }"
-          @click.prevent="currentTab = 'settings'"
-        >
-          <i class="icon">⚙️</i>
-          设置
+          <i class="icon">{{ tab.icon }}</i>
+          {{ tab.text }}
         </a>
       </nav>
 
@@ -106,15 +106,7 @@ onMounted(async () => {
     <div class="main-content">
       <div class="content-header">
         <h1>
-          {{
-            currentTab === 'dashboard'
-              ? '仪表盘'
-              : currentTab === 'messages'
-                ? '消息记录'
-                : currentTab === 'contacts'
-                  ? '联系人'
-                  : '设置'
-          }}
+          {{ getTabText(currentTab) }}
         </h1>
       </div>
 
@@ -122,7 +114,7 @@ onMounted(async () => {
         <DashboardPanel v-if="currentTab === 'dashboard'" />
         <MessagePanel v-else-if="currentTab === 'messages'" />
         <ContactPanel v-else-if="currentTab === 'contacts'" />
-        <ContactPanel v-else-if="currentTab === 'rooms'" />
+        <RoomPanel v-else-if="currentTab === 'rooms'" />
         <SettingPanel v-else-if="currentTab === 'settings'" />
       </div>
     </div>
@@ -198,6 +190,8 @@ onMounted(async () => {
 
 .icon {
   font-size: 16px;
+  height: 25px;
+  width: 25px;
 }
 
 .sidebar-footer {
